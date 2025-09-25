@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import reactLogo from "../../assets/svg/react.svg";
-import tailwindLogo from "../../assets/svg/tailwind.svg";
+import reactLogo from "@/assets/svg/react.svg";
+import tailwindLogo from "@/assets/svg/tailwind.svg";
 
-function InicioAbaco() {
+function home_component() {
     const [pos, setPos] = useState({ x: 50, y: 50 });
 
     useEffect(() => {
@@ -60,4 +60,4 @@ function InicioAbaco() {
     );
 }
 
-export default InicioAbaco;
+export default home_component;
