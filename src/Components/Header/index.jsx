@@ -1,27 +1,18 @@
-import { urlIceberg } from "@/Server";
-import logo from "@/assets/svg/Logo_Dashboard.svg";
+import { useEffect, useRef } from "react";
 
 const Header = () => {
-  const homeIceberg = () => {
-    window.location.href = `${urlIceberg}`;
-  };
+  const headerRef = useRef(null);
+  useEffect(() => {
+    const header = headerRef.current;
+    if (header) {
+      const updateModuleName = () => {
+        const newName = import.meta.env.VITE_APP_NAME;
+        header.setAttribute("moduleName", newName);
+      };
+      updateModuleName();
+    }
+  }, []);
 
-  return (
-    <header className="w-full h-[60px] bg-black text-white flex items-center justify-between px-4 md:px-7">
-      <div className="flex items-center gap-2 text-gray-300">
-        <img
-          src={logo}
-          alt="Logo"
-          className="h-[35px] object-contain cursor-pointer"
-          onClick={homeIceberg}
-        />
-        <p className="text-xl md:text-2xl leading-none text-neutral-300 font-semibold ">|</p>
-        <p className="text-lg md:text-xl font-semibold leading-none text-stone-100 ml-1 uppercase">
-          {import.meta.env.VITE_APP_NAME}
-        </p>
-      </div>
-    </header >
-  );
+  return <mi-header ref={headerRef}></mi-header>;
 };
-
 export default Header;
