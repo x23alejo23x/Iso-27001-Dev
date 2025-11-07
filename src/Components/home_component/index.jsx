@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import reactLogo from "@/assets/svg/react.svg";
 import tailwindLogo from "@/assets/svg/tailwind.svg";
+import BackButton from "@/Components/Button/BackButton/BackButton";
 
 function home_component() {
   const [pos, setPos] = useState({ x: 50, y: 50 });
@@ -44,6 +45,7 @@ function home_component() {
         <span className="font-semibold text-blue-400">TailwindCSS</span> y{" "}
         <span className="font-semibold text-yellow-400">Vite</span>.
       </footer>
+      <BackButton />
     </div>
   );
 }
