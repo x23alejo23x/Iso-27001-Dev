@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:preproduccion": "vite build --mode preproduccion",
+    "build:produccion": "vite build --mode produccion",
     "lint": "eslint .",
     "preview": "vite preview"
   },
