@@ -1,12 +1,87 @@
-# React + Vite
+# 🚀 Iso-27001 Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Frontend desarrollado en **React + Vite** para la gestión de checklist, dashboard y administración basada en ISO 27001.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🛠️ Tecnologías
 
-## Expanding the ESLint configuration
+- ⚛️ React 18
+- ⚡ Vite
+- 🎨 Tailwind CSS v4
+- 🔐 Context API (Auth / Theme)
+- 📊 Recharts
+- 🎬 Framer Motion
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+---
+
+## 📁 Estructura del proyecto
+
+```
+src/
+│
+├── Pages/
+│   ├── Dashboard/
+│   ├── Checklist/
+│   ├── Admin/
+│   └── Settings/
+│
+├── layouts/
+├── context/
+├── Router.jsx
+├── App.jsx
+└── main.jsx
+```
+
+---
+
+## 🚀 Instalación
+
+```bash
+npm install
+npm run dev
+```
+
+---
+
+## 🌐 Rutas principales
+
+- `/login` → Login
+- `/` → Dashboard
+- `/checklist` → Checklist ISO
+- `/admin` → Administración
+- `/settings` → Configuración
+
+---
+
+## 🔐 Autenticación
+
+Se maneja mediante `AuthContext` para proteger rutas privadas usando `ProtectedRoute`.
+
+---
+
+## 🎨 Estilos
+
+Se utiliza **Tailwind CSS v4** con configuración moderna usando:
+
+```css
+@import "tailwindcss";
+```
+
+---
+
+## 📌 Notas
+
+- No se usa PostCSS ni configuración legacy
+- Router centralizado en `Router.jsx`
+- Componentes organizados por dominio
+
+---
+
+## 👨‍💻 Autor
+
+Proyecto desarrollado para gestión de cumplimiento ISO 27001.
+
+```
+
+```

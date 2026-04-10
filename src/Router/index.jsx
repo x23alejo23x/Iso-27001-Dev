@@ -1,34 +1,37 @@
-import { Routes, Route, useRoutes } from "react-router-dom";
-import Dashboard from "@/Pages/Dashboard";
-import TokenExpired from "@/Pages/TokenExpired";
-import Layout from "@/Pages/Layout";
-import NotFoundPage from "@/Pages/NotFoundPage";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import MainLayout from "../layouts/MainLayout.jsx";
+import LoginView from "../pages/Login/views";
+import DashboardView from "../pages/Dashboard/views";
+import ChecklistView from "../Pages/Checklist/views";
+import AdminView from "../pages/Admin/views";
+import SettingsView from "../pages/Settings/views";
 
-export default function AppRoutes() {
-  const routes = useRoutes([
-    {
-      path: "/",
-      element: <Layout />,
-      children: [
-        { index: true, element: <Dashboard /> },
-        { path: "dashboard", element: <Dashboard /> },
-        {
-          path: "*",
-          element: <NotFoundPage />, //Vista 404
-        },
-      ],
-    },
-    {
-      path: "/tokenExpired",
-      element: <TokenExpired />, //Vista Token
-    },
-  ]);
+function ProtectedRoute({ children }) {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? children : <Navigate to="/login" replace />;
+}
 
-  return routes;
+export default function AppRouter() {
   return (
     <Routes>
-      <Route path="/" element={<Dashboard />} />
-      <Route path="/tokenExpired" element={<TokenExpired />} />
+      <Route path="/login" element={<LoginView />} />
+
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <MainLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<DashboardView />} />
+        <Route path="checklist" element={<ChecklistView />} />
+        <Route path="admin" element={<AdminView />} />
+        <Route path="settings" element={<SettingsView />} />
+      </Route>
+
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
