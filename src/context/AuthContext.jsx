@@ -1,54 +1,62 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { authService } from "../Pages/Login/service";
+import {
+  loginStart,
+  loginSuccess,
+  loginFailure,
+  logout as logoutAction,
+} from "../redux/sildes/loginSlice";
 
 const AuthContext = createContext();
 
-const CREDENTIALS = {
-  username: "admin",
-  password: "1234",
-};
-
 export function AuthProvider({ children }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    () => localStorage.getItem("auth") === "true",
-  );
-  const [user, setUser] = useState(() =>
-    JSON.parse(localStorage.getItem("user") || "null"),
-  );
-  const [error, setError] = useState(null);
+  const dispatch = useDispatch();
 
-  const login = (username, password) => {
-    if (
-      username === CREDENTIALS.username &&
-      password === CREDENTIALS.password
-    ) {
-      const userData = { name: "Ana García", role: "Admin", initials: "AG" };
-      setIsAuthenticated(true);
-      setUser(userData);
-      setError(null);
-      localStorage.setItem("auth", "true");
-      localStorage.setItem("user", JSON.stringify(userData));
-      return true;
+  // Leemos el estado directamente de Redux para mantener todo en un solo sitio
+  const { user, error, isAuthenticated, loading } = useSelector(
+    (state) => state.login,
+  );
+
+  const login = async (email, password) => {
+    try {
+      dispatch(loginStart());
+
+      const data = await authService.login(email, password);
+
+      // Verificamos que la API responda con éxito
+      if (data && data.success) {
+        dispatch(loginSuccess(data));
+        return true;
+      }
+
+      dispatch(loginFailure("Credenciales incorrectas"));
+      return false;
+    } catch (err) {
+      const errorMessage = "Credenciales inválidas o error de conexión";
+      dispatch(loginFailure(errorMessage));
+      return false;
     }
-    setError("Usuario o contraseña incorrectos");
-    return false;
   };
 
   const logout = () => {
-    setIsAuthenticated(false);
-    setUser(null);
-    localStorage.removeItem("auth");
-    localStorage.removeItem("user");
+    dispatch(logoutAction());
   };
 
   return (
     <AuthContext.Provider
-      value={{ isAuthenticated, user, login, logout, error }}
+      value={{
+        user, // Viene de Redux
+        login,
+        error, // Viene de Redux
+        logout,
+        isAuthenticated, // Viene de Redux
+        isLoading: loading,
+      }}
     >
       {children}
     </AuthContext.Provider>
   );
 }
 
-export function useAuth() {
-  return useContext(AuthContext);
-}
+export const useAuth = () => useContext(AuthContext);

@@ -1,3 +1,3 @@
-const GateWay = import.meta.env.VITE_REACT_APP_API_GATEWAY;
+const iso = import.meta.env.VITE_REACT_APP_API_ISO;
 
-export { GateWay };
+export { iso };
