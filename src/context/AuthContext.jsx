@@ -13,7 +13,6 @@ const AuthContext = createContext();
 export function AuthProvider({ children }) {
   const dispatch = useDispatch();
 
-  // Leemos el estado directamente de Redux para mantener todo en un solo sitio
   const { user, error, isAuthenticated, loading } = useSelector(
     (state) => state.login,
   );
@@ -24,7 +23,6 @@ export function AuthProvider({ children }) {
 
       const data = await authService.login(email, password);
 
-      // Verificamos que la API responda con éxito
       if (data && data.success) {
         dispatch(loginSuccess(data));
         return true;
@@ -46,11 +44,11 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider
       value={{
-        user, // Viene de Redux
+        user, 
         login,
-        error, // Viene de Redux
+        error,
         logout,
-        isAuthenticated, // Viene de Redux
+        isAuthenticated, 
         isLoading: loading,
       }}
     >
