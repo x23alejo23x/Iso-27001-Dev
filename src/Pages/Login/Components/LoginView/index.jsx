@@ -1,8 +1,18 @@
 import { motion } from "framer-motion";
-import { ShieldCheck, User, Lock, ArrowRight, AlertCircle } from "lucide-react";
+import { useState } from "react";
+import {
+  ShieldCheck,
+  User,
+  Lock,
+  ArrowRight,
+  AlertCircle,
+  Building,
+} from "lucide-react";
 import { useLoginForm } from "../useLoginForm";
+import RegistroView from "../RegistroView";
 
 export default function LoginView() {
+  const [showRegistro, setShowRegistro] = useState(false);
   const {
     username,
     setUsername,
@@ -12,6 +22,10 @@ export default function LoginView() {
     error,
     handleSubmit,
   } = useLoginForm();
+
+  if (showRegistro) {
+    return <RegistroView onLoginClick={() => setShowRegistro(false)} />;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4 relative overflow-hidden transition-colors">
@@ -56,15 +70,15 @@ export default function LoginView() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1">
-                Usuario
+                Correo Electrónico
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
                 <input
-                  type="text"
+                  type="email"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="admin"
+                  placeholder="admin@empresa.com"
                   required
                   className="w-full pl-10 pr-4 py-3 bg-slate-50/50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none transition-all placeholder:text-slate-400 text-slate-900 dark:text-slate-100"
                 />
@@ -88,11 +102,6 @@ export default function LoginView() {
               </div>
             </div>
 
-            <div className="pt-1 text-xs text-slate-400 dark:text-slate-500 text-center">
-              Credenciales de prueba: <span className="font-mono">admin</span> /{" "}
-              <span className="font-mono">1234</span>
-            </div>
-
             <motion.button
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.99 }}
@@ -112,6 +121,26 @@ export default function LoginView() {
                 </>
               )}
             </motion.button>
+
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-200 dark:border-slate-700"></div>
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="px-2 bg-white/70 dark:bg-slate-900/70 text-slate-500">
+                  ¿Nuevo?
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowRegistro(true)}
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 rounded-xl text-sm font-medium hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-colors"
+            >
+              <Building className="w-4 h-4" />
+              Crear Nueva Empresa
+            </button>
           </form>
         </div>
       </motion.div>

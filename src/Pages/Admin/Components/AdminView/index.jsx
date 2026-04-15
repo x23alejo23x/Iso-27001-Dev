@@ -1,39 +1,41 @@
+// Admin/Components/AdminView/index.jsx
 import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
-import { UserPlus } from "lucide-react";
+import { UserPlus, Building2 } from "lucide-react"; // ícono adicional
 import { motion } from "framer-motion";
 import StatsCards from "../StatsCards";
 import UserTable from "../UserTable";
 import UserModal from "../UserModal";
+import DepartamentoModal from "../DepartamentoModal";
 import { useAdminService } from "../../service";
 
 export default function AdminView() {
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
+  const [departamentos, setDepartamentos] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeptoModalOpen, setIsDeptoModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
 
   const {
     loading,
     fetchRoles,
     fetchUsuarios,
+    fetchDepartamentos,
     createUsuario,
     deleteUsuario,
     updateUsuario,
+    createDepartamento,
+    deleteDepartamento,
   } = useAdminService();
-
   const authState = useSelector((state) => state.login);
-
-  const empresaNombre =
-    authState?.user?.empresas?.nombre_comercial || "Sin empresa";
-
-  const empresaId =
-    authState?.user?.empresa_id || authState?.user?.empresas?.id_empresa;
+  const empresaId = authState.user?.empresa_id;
 
   useEffect(() => {
     if (empresaId) {
       loadRoles();
       loadUsers();
+      loadDepartamentos();
     }
   }, [empresaId]);
 
@@ -46,6 +48,15 @@ export default function AdminView() {
     }
   };
 
+  const loadDepartamentos = async () => {
+    try {
+      const deptos = await fetchDepartamentos(empresaId);
+      setDepartamentos(deptos);
+    } catch (error) {
+      console.error("Error al cargar departamentos:", error);
+    }
+  };
+
   const loadUsers = async () => {
     try {
       const usersData = await fetchUsuarios(empresaId);
@@ -55,36 +66,49 @@ export default function AdminView() {
     }
   };
 
-  const handleCreateUser = async (payload) => {
+  // Manejadores de usuario (igual que antes)
+  const handleCreateUser = async (userData) => {
     try {
-      await createUsuario(payload);
+      const newUser = {
+        nombre_usuario: userData.nombre_usuario,
+        correo_electronico: userData.correo_electronico,
+        password: userData.password,
+        empresa_id: empresaId,
+        rol_id: parseInt(userData.rol_id),
+        departamento_id: userData.departamento_id || null,
+      };
+      await createUsuario(newUser);
       await loadUsers();
       setIsModalOpen(false);
     } catch (error) {
-      console.error("Error al crear usuario:", error);
       alert(error.message);
     }
   };
 
-  const handleUpdateUser = async (payload) => {
+  const handleUpdateUser = async (userData) => {
     try {
-      await updateUsuario(editingUser.id_usuario, payload);
+      const updatedUser = {
+        nombre_usuario: userData.nombre_usuario,
+        correo_electronico: userData.correo_electronico,
+        rol_id: parseInt(userData.rol_id),
+        departamento_id: userData.departamento_id || null,
+        empresa_id: empresaId,
+      };
+      await updateUsuario(editingUser.id_usuario, updatedUser);
       await loadUsers();
       setIsModalOpen(false);
       setEditingUser(null);
     } catch (error) {
-      console.error("Error al actualizar usuario:", error);
       alert(error.message);
     }
   };
 
-  const handleDeleteUser = async (userId) => {
-    if (window.confirm("¿Estás seguro de que deseas eliminar este usuario?")) {
+  const handleDeleteUser = async (usuarioId) => {
+    if (window.confirm("¿Eliminar este usuario?")) {
       try {
-        await deleteUsuario(userId);
+        await deleteUsuario(usuarioId, empresaId);
         await loadUsers();
       } catch (error) {
-        console.error("Error al eliminar usuario:", error);
         alert(error.message);
       }
     }
@@ -95,12 +119,28 @@ export default function AdminView() {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = (payload) => {
+  const handleOpenModal = () => {
+    setEditingUser(null);
+    setIsModalOpen(true);
+  };
+
+  const handleSubmit = (formData) => {
     if (editingUser) {
-      handleUpdateUser(payload);
+      handleUpdateUser(formData);
     } else {
-      handleCreateUser(payload);
+      handleCreateUser(formData);
     }
+  };
+
+  // Manejadores de departamentos
+  const handleCreateDepartamento = async (data) => {
+    await createDepartamento(data);
+    await loadDepartamentos(); // refrescar lista
+  };
+
+  const handleDeleteDepartamento = async (id, empresaId) => {
+    await deleteDepartamento(id, empresaId);
+    await loadDepartamentos();
   };
 
   return (
@@ -111,26 +151,32 @@ export default function AdminView() {
             Administración
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-1">
-            Gestiona usuarios, roles y permisos de la plataforma
+            Gestiona usuarios, roles y departamentos
           </p>
-          <p className="text-xs text-blue-400 mt-2">Empresa: {empresaNombre}</p>
         </div>
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => {
-            setEditingUser(null);
-            setIsModalOpen(true);
-          }}
-          className="flex items-center gap-2 py-2.5 px-5 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-xl text-sm font-medium transition-colors shadow-sm w-fit"
-        >
-          <UserPlus className="w-4 h-4" />
-          Invitar Usuario
-        </motion.button>
+        <div className="flex gap-3">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setIsDeptoModalOpen(true)}
+            className="flex items-center gap-2 py-2.5 px-5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium"
+          >
+            <Building2 className="w-4 h-4" />
+            Departamentos
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleOpenModal}
+            className="flex items-center gap-2 py-2.5 px-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium"
+          >
+            <UserPlus className="w-4 h-4" />
+            Invitar Usuario
+          </motion.button>
+        </div>
       </div>
 
       <StatsCards users={users} roles={roles} />
-
       <UserTable
         users={users}
         onEdit={handleEditUser}
@@ -147,8 +193,18 @@ export default function AdminView() {
         onSubmit={handleSubmit}
         userToEdit={editingUser}
         roles={roles}
+        departamentos={departamentos}
         empresaId={empresaId}
-        empresaNombre={empresaNombre}
+      />
+
+      <DepartamentoModal
+        isOpen={isDeptoModalOpen}
+        onClose={() => setIsDeptoModalOpen(false)}
+        departamentos={departamentos}
+        onCreateDepartamento={handleCreateDepartamento}
+        onDeleteDepartamento={handleDeleteDepartamento}
+        empresaId={empresaId}
+        loading={loading}
       />
     </div>
   );

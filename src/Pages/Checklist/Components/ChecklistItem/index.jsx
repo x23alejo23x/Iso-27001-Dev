@@ -38,13 +38,20 @@ const statusLabels = {
 };
 
 const priorityStyles = {
-  high: "bg-red-50 text-red-600 dark:bg-red-500/20 dark:text-red-400 border-red-200 dark:border-red-500/30",
-  medium:
-    "bg-orange-50 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400 border-orange-200 dark:border-orange-500/30",
-  low: "bg-slate-50 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700",
+  Crítica:
+    "bg-red-50 text-red-600 dark:bg-red-500/20 dark:text-red-400 border-red-200 dark:border-red-500/30",
+  Alta: "bg-orange-50 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400 border-orange-200 dark:border-orange-500/30",
+  Media:
+    "bg-yellow-50 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-400 border-yellow-200 dark:border-yellow-500/30",
+  Baja: "bg-slate-50 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700",
 };
 
-const priorityLabels = { high: "Alta", medium: "Media", low: "Baja" };
+const priorityLabels = {
+  Crítica: "Crítica",
+  Alta: "Alta",
+  Media: "Media",
+  Baja: "Baja",
+};
 
 // Sub-componente para el selector de estado
 function StatusDropdown({ status, onStatusChange, onOpen }) {
@@ -187,10 +194,10 @@ const ChecklistItem = forwardRef(
             <div className="flex items-center gap-3 flex-shrink-0">
               <span
                 className={`hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${
-                  priorityStyles[item.priority || "medium"]
+                  priorityStyles[item.priority] || priorityStyles["Media"]
                 }`}
               >
-                {priorityLabels[item.priority || "medium"]}
+                {priorityLabels[item.priority] || "Media"}
               </span>
 
               <StatusDropdown

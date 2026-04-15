@@ -2,11 +2,17 @@ import { useState, useMemo, useEffect } from "react";
 import { useChecklistService } from "../../service";
 
 const STATUS_MAP = {
-  NO_INICIADO: "not_started",
-  EN_PROCESO: "in_progress",
-  CUMPLE: "completed",
-  NO_CUMPLE: "pending_update",
-  NO_APLICA: "not_applicable",
+  Completado: "completed",
+  "En Progreso": "in_progress",
+  "Pendiente Novedad": "pending_update",
+  "No Iniciado": "not_started",
+};
+
+const STATUS_TO_BACKEND = {
+  completed: "Completado",
+  in_progress: "En Progreso",
+  pending_update: "Pendiente Novedad",
+  not_started: "No Iniciado",
 };
 
 export function useChecklist() {
@@ -22,28 +28,38 @@ export function useChecklist() {
 
   useEffect(() => {
     if (data) {
-      setItems(
-        data.map((c) => ({
-          id: c.id_control_maestro,
-          controlId: c.codigo_norma,
-          title: c.nombre_del_control,
-          description: c.explicacion_del_control,
-          domain: c.area_o_dominio,
-          status: "not_started",
-          priority: "medium",
-        })),
-      );
+      const estadoPorControl = {};
+      if (data.seguimientos) {
+        data.seguimientos.forEach((seg) => {
+          estadoPorControl[seg.control_id] = seg.estado_nombre || "No Iniciado";
+        });
+      }
+      const controles = data.controles || data;
+      const mapped = controles.map((control) => {
+        const estadoBackend =
+          estadoPorControl[control.id_control_maestro] || "No Iniciado";
+        return {
+          id: control.id_control_maestro,
+          controlId: control.codigo_norma,
+          title: control.nombre_del_control,
+          description: control.explicacion_del_control,
+          domain: control.area_o_dominio,
+          priority: control.prioridad || "Media",
+          status: STATUS_MAP[estadoBackend] || "not_started",
+          responsible: control.responsable || "No asignado",
+        };
+      });
+      setItems(mapped);
     }
   }, [data]);
 
-  const catalogStates = useMemo(
-    () =>
-      (estados || []).map((e) => ({
-        key: STATUS_MAP[e.nombre_del_estado] || "not_started",
-        label: e.nombre_del_estado.replace(/_/g, " "),
-      })),
-    [estados],
-  );
+  const catalogStates = useMemo(() => {
+    const uniqueStates = [...new Set(items.map((i) => i.status))];
+    return uniqueStates.map((s) => ({
+      key: s,
+      label: Object.keys(STATUS_MAP).find((key) => STATUS_MAP[key] === s) || s,
+    }));
+  }, [items]);
 
   const stats = useMemo(() => {
     const s = { total: items.length };
@@ -58,15 +74,47 @@ export function useChecklist() {
       const matchSearch =
         !search ||
         [i.title, i.controlId, i.description].some((f) =>
-          f.toLowerCase().includes(search.toLowerCase()),
+          f?.toLowerCase().includes(search.toLowerCase()),
         );
-      return (
-        matchSearch &&
-        (filters.status === "all" || i.status === filters.status) &&
-        (filters.domain === "all" || i.domain === filters.domain)
-      );
+      const matchStatus =
+        filters.status === "all" || i.status === filters.status;
+      const matchDomain =
+        filters.domain === "all" || i.domain === filters.domain;
+      const matchPriority =
+        filters.priority === "all" || i.priority === filters.priority;
+      return matchSearch && matchStatus && matchDomain && matchPriority;
     });
   }, [items, search, filters]);
+
+  const changeStatus = async (id, newStatus) => {
+    setItems((prev) =>
+      prev.map((i) => (i.id === id ? { ...i, status: newStatus } : i)),
+    );
+    try {
+      const payload = {
+        control_id: id,
+        estado: STATUS_TO_BACKEND[newStatus],
+      };
+      await fetch(`/api/seguimientos`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    } catch (err) {
+      console.error("Error al actualizar estado", err);
+      setItems((prev) =>
+        prev.map((i) =>
+          i.id === id
+            ? {
+                ...i,
+                status:
+                  newStatus === "not_started" ? "completed" : "not_started",
+              }
+            : i,
+        ),
+      );
+    }
+  };
 
   return {
     items,
@@ -81,7 +129,6 @@ export function useChecklist() {
     loading,
     error,
     toggleExpand: (id) => setExpandedId((prev) => (prev === id ? null : id)),
-    changeStatus: (id, status) =>
-      setItems((prev) => prev.map((i) => (i.id === id ? { ...i, status } : i))),
+    changeStatus,
   };
 }

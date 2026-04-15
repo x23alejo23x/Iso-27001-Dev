@@ -31,6 +31,14 @@ const STAT_CARDS = [
   },
 ];
 
+const PRIORITY_OPTIONS = [
+  { value: "all", label: "Todas las prioridades" },
+  { value: "Crítica", label: "Crítica" },
+  { value: "Alta", label: "Alta" },
+  { value: "Media", label: "Media" },
+  { value: "Baja", label: "Baja" },
+];
+
 export default function ChecklistView() {
   const {
     items,
@@ -47,7 +55,6 @@ export default function ChecklistView() {
     changeStatus,
   } = useChecklist();
 
-  // Dominios dinámicos desde la data real
   const dynamicDomains = useMemo(() => {
     if (!items) return [];
     const domains = items.map((i) => i.domain).filter(Boolean);
@@ -65,6 +72,17 @@ export default function ChecklistView() {
       </div>
     );
   }
+
+  const handleResetFilters = () => {
+    setSearch("");
+    setFilters({ status: "all", domain: "all", priority: "all" });
+  };
+
+  const hasActiveFilters =
+    filters.status !== "all" ||
+    filters.domain !== "all" ||
+    filters.priority !== "all" ||
+    search !== "";
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 pb-12 p-4">
@@ -105,7 +123,7 @@ export default function ChecklistView() {
         })}
       </div>
 
-      {/* Filtros con el estilo original */}
+      {/* Filtros */}
       <div className="flex flex-col md:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -142,12 +160,23 @@ export default function ChecklistView() {
             ))}
           </select>
 
-          {(filters.status !== "all" || filters.domain !== "all" || search) && (
+          <select
+            value={filters.priority}
+            onChange={(e) =>
+              setFilters((prev) => ({ ...prev, priority: e.target.value }))
+            }
+            className="px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:outline-none text-slate-700 dark:text-slate-300"
+          >
+            {PRIORITY_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+
+          {hasActiveFilters && (
             <button
-              onClick={() => {
-                setSearch("");
-                setFilters({ status: "all", domain: "all", priority: "all" });
-              }}
+              onClick={handleResetFilters}
               className="flex items-center gap-1.5 px-3 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl text-sm text-slate-600 dark:text-slate-300 transition-colors"
             >
               <X className="w-3.5 h-3.5" /> Limpiar
@@ -165,7 +194,6 @@ export default function ChecklistView() {
         </div>
       </div>
 
-      {/* Lista de Controles - Recuperando el fondo y bordes */}
       <div className="space-y-3 relative min-h-[300px]">
         {loading ? (
           <div className="flex justify-center py-20">

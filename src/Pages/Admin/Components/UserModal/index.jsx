@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, User, Mail, Lock, Shield, Building } from "lucide-react";
+import { X, User, Mail, Lock, Shield, Building, Users } from "lucide-react";
 import { useSelector } from "react-redux";
 
 export default function UserModal({
@@ -9,19 +9,19 @@ export default function UserModal({
   onSubmit,
   userToEdit,
   roles,
+  departamentos,
   empresaId,
 }) {
-  // ✅ Redux correctamente usado
   const authState = useSelector((state) => state.login);
-
   const empresaNombre =
     authState?.user?.empresas?.nombre_comercial || "Sin empresa";
 
   const [formData, setFormData] = useState({
     nombre_usuario: "",
     correo_electronico: "",
-    contrasena_encriptada: "",
+    password: "",
     rol_id: "",
+    departamento_id: "",
     empresa_id: empresaId || "",
   });
 
@@ -30,15 +30,19 @@ export default function UserModal({
       setFormData({
         nombre_usuario: userToEdit.nombre_usuario || "",
         correo_electronico: userToEdit.correo_electronico || "",
-        contrasena_encriptada: "",
+        password: "",
         rol_id: userToEdit.rol_id || "",
+        departamento_id: userToEdit.departamento_id || "",
         empresa_id: userToEdit.empresa_id || empresaId || "",
       });
     } else {
-      setFormData((prev) => ({
-        ...prev,
+      setFormData({
+        nombre_usuario: "",
+        correo_electronico: "",
+        password: "",
+        rol_id: "",
         empresa_id: empresaId || "",
-      }));
+      });
     }
   }, [userToEdit, empresaId]);
 
@@ -53,7 +57,7 @@ export default function UserModal({
       alert("Por favor ingresa el correo electrónico");
       return;
     }
-    if (!userToEdit && !formData.contrasena_encriptada) {
+    if (!userToEdit && !formData.password) {
       alert("Por favor ingresa una contraseña");
       return;
     }
@@ -69,13 +73,13 @@ export default function UserModal({
     const payload = {
       nombre_usuario: formData.nombre_usuario,
       correo_electronico: formData.correo_electronico,
-      rol_id: Number(formData.rol_id),
+      password: formData.password,
       empresa_id: formData.empresa_id,
+      rol_id: Number(formData.rol_id),
+      departamento_id: formData.departamento_id || null,
     };
 
-    if (!userToEdit) {
-      payload.password = formData.contrasena_encriptada;
-    }
+    console.log("Enviando payload:", payload);
     onSubmit(payload);
   };
 
@@ -87,6 +91,10 @@ export default function UserModal({
   };
 
   const rolesList = Array.isArray(roles) ? roles : [];
+  const allowedRoles = rolesList.filter(
+    (role) => role.id_rol === 3 || role.id_rol === 4,
+  );
+  const departamentosList = Array.isArray(departamentos) ? departamentos : [];
 
   return (
     <AnimatePresence>
@@ -106,8 +114,8 @@ export default function UserModal({
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-50"
           >
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-              <div className="flex items-center justify-between p-6 border-b">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-600 dark:border-slate-800 overflow-hidden">
+              <div className="flex items-center justify-between p-6 border-b border-blue-950">
                 <h3 className="text-xl font-semibold">
                   {userToEdit ? "Editar Usuario" : "Crear Usuario"}
                 </h3>
@@ -116,14 +124,12 @@ export default function UserModal({
                 </button>
               </div>
 
-              {/* 🔥 AQUÍ ESTÁ TU VISTA CON EMPRESA */}
               <form onSubmit={handleSubmit} className="p-6 space-y-4">
                 <div className="bg-indigo-50 dark:bg-indigo-950/30 p-3 rounded-xl">
                   <label className="block text-sm font-medium text-indigo-700 mb-1">
                     <Building className="w-4 h-4 inline mr-2" />
                     Empresa
                   </label>
-
                   <p className="text-sm font-medium">
                     {empresaNombre || "Cargando..."}
                   </p>
@@ -171,8 +177,8 @@ export default function UserModal({
                     </label>
                     <input
                       type="password"
-                      name="contrasena_encriptada"
-                      value={formData.contrasena_encriptada}
+                      name="password"
+                      value={formData.password}
                       onChange={handleChange}
                       placeholder="Mínimo 6 caracteres"
                       required={!userToEdit}
@@ -181,6 +187,29 @@ export default function UserModal({
                     />
                   </div>
                 )}
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    <Users className="w-4 h-4 inline mr-2" />
+                    Departamento
+                  </label>
+                  <select
+                    name="departamento_id"
+                    value={formData.departamento_id}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none"
+                  >
+                    <option value="">Sin departamento</option>
+                    {departamentosList.map((depto) => (
+                      <option
+                        key={depto.id_departamento}
+                        value={depto.id_departamento}
+                      >
+                        {depto.nombre_departamento}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">

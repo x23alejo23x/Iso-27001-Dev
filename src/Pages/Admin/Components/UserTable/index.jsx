@@ -50,7 +50,13 @@ export default function UserTable({ users = [], onEdit, onDelete, loading }) {
       user.correo_electronico?.toLowerCase().includes(search.toLowerCase()),
   );
 
-  const columns = ["Usuario", "Rol", "Fecha Registro", "Acciones"];
+  const columns = [
+    "Usuario",
+    "Rol",
+    "Departamento",
+    "Fecha Registro",
+    "Acciones",
+  ];
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
@@ -157,24 +163,16 @@ export default function UserTable({ users = [], onEdit, onDelete, loading }) {
                     </span>
                   </td>
 
-                  {/* Estado */}
-                  {/* <td className="py-4 px-6">
-                    <span
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusBadgeColor(
-                        "Activo",
-                      )}`}
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                      Activo
-                    </span>
-                  </td> */}
+                  <td className="py-4 px-6 text-sm text-slate-600 dark:text-slate-300">
+                    {user.departamento?.nombre_departamento ||
+                      "Sin departamento"}
+                  </td>
 
                   {/* Fecha */}
                   <td className="py-4 px-6 text-sm text-slate-500 dark:text-slate-400">
                     {new Date(user.fecha_registro).toLocaleDateString()}
                   </td>
 
-                  {/* Acciones */}
                   <td className="py-4 px-6">
                     <div className="flex items-center justify-end gap-1">
                       <button
