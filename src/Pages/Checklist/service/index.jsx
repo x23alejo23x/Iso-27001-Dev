@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
-import { useSelector } from "react-redux"; // Importante para leer de Redux
+// Checklist/service/index.jsx
+import { useState, useEffect, useCallback } from "react";
+import { useSelector } from "react-redux";
 import { iso } from "../../../Server";
 
 export function useChecklistService() {
@@ -7,18 +8,9 @@ export function useChecklistService() {
   const [estados, setEstados] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  // Accedemos a la pieza 'login' del store de Redux
   const authState = useSelector((state) => state.login);
 
   useEffect(() => {
-    // Aquí es donde lo pintamos en consola para verificar
-    console.log("--- DATOS DESDE REDUX ---");
-    console.log("Estado completo:", authState);
-    console.log("Usuario logueado:", authState.user);
-    console.log("ID Empresa:", authState.user?.empresa_id);
-    console.log("-------------------------");
-
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -26,15 +18,12 @@ export function useChecklistService() {
           fetch(`${iso}/api/controles`),
           fetch(`${iso}/api/catalog/estados`),
         ]);
-
         if (!resControles.ok || !resEstados.ok)
           throw new Error("Fallo en el servidor");
-
         const [controlesJson, estadosJson] = await Promise.all([
           resControles.json(),
           resEstados.json(),
         ]);
-
         setData(controlesJson);
         setEstados(estadosJson);
         setError(null);
@@ -44,9 +33,81 @@ export function useChecklistService() {
         setLoading(false);
       }
     };
-
     fetchData();
-  }, [authState]); // Se dispara el log si el estado de Redux cambia
+  }, [authState]);
 
-  return { data, estados, loading, error };
+  const fetchSeguimientos = useCallback(async (empresaId) => {
+    const res = await fetch(`${iso}/api/seguimiento?empresa_id=${empresaId}`);
+    if (!res.ok) throw new Error("Error al obtener seguimientos");
+    return res.json();
+  }, []);
+  const fetchHistorial = useCallback(
+    async (controlId) => {
+      const empresaId = authState.user?.empresa_id;
+
+      if (!empresaId) {
+        throw new Error("No se pudo obtener el empresa_id");
+      }
+
+      const res = await fetch(
+        `${iso}/api/seguimiento/historial/${controlId}?empresa_id=${empresaId}`,
+      );
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Error al obtener historial");
+      }
+
+      return res.json();
+    },
+    [authState],
+  );
+
+  const upsertSeguimiento = useCallback(
+    async (controlId, estadoId, justificacion) => {
+      const empresaId = authState.user?.empresa_id;
+      const quienActualizoId = authState.user?.id_usuario;
+      const nombreResponsable = authState.user?.nombre_usuario;
+
+      if (!empresaId || !quienActualizoId) {
+        throw new Error(
+          "No se pudo obtener información de la empresa o usuario",
+        );
+      }
+
+      const payload = {
+        empresa_id: empresaId,
+        quien_actualizo_id: quienActualizoId,
+        estado_id: estadoId,
+        nombre_del_responsable: nombreResponsable,
+        descripcion_justificacion: justificacion || "",
+      };
+
+      const response = await fetch(
+        `${iso}/api/seguimiento/control/${controlId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Error al guardar el seguimiento");
+      }
+      return response.json();
+    },
+    [authState],
+  );
+
+  return {
+    data,
+    estados,
+    loading,
+    error,
+    fetchSeguimientos,
+    upsertSeguimiento,
+    fetchHistorial,
+  };
 }

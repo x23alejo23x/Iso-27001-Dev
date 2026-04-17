@@ -53,6 +53,7 @@ export default function ChecklistView() {
     error,
     toggleExpand,
     changeStatus,
+    getHistorial,
   } = useChecklist();
 
   const dynamicDomains = useMemo(() => {
@@ -221,7 +222,10 @@ export default function ChecklistView() {
                     item={item}
                     isExpanded={expandedId === item.id}
                     onToggle={() => toggleExpand(item.id)}
-                    onStatusChange={(s) => changeStatus(item.id, s)}
+                    onGetHistorial={getHistorial}
+                    onStatusChange={(id, newStatus, justificacion) =>
+                      changeStatus(id, newStatus, justificacion)
+                    }
                   />
                 </motion.div>
               ))

@@ -1,4 +1,6 @@
-import { useState, useMemo, useEffect } from "react";
+// Checklist/Components/useChecklist/index.jsx
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useSelector } from "react-redux";
 import { useChecklistService } from "../../service";
 
 const STATUS_MAP = {
@@ -16,7 +18,17 @@ const STATUS_TO_BACKEND = {
 };
 
 export function useChecklist() {
-  const { data, estados, loading, error } = useChecklistService();
+  const {
+    data,
+    estados,
+    loading,
+    error,
+    fetchSeguimientos,
+    upsertSeguimiento,
+    fetchHistorial,
+  } = useChecklistService();
+  const authState = useSelector((state) => state.login);
+  const empresaId = authState.user?.empresa_id;
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState({
@@ -25,34 +37,99 @@ export function useChecklist() {
     priority: "all",
   });
   const [expandedId, setExpandedId] = useState(null);
+  const [loadingSeguimientos, setLoadingSeguimientos] = useState(false);
+  const hasLoadedSeguimientos = useRef(false);
+
+  const estadoNameToId = useMemo(() => {
+    const map = {};
+    if (estados) {
+      estados.forEach((e) => {
+        map[e.nombre_del_estado] = e.id_estado;
+      });
+    }
+    return map;
+  }, [estados]);
+
+  const getHistorial = async (controlId) => {
+    if (!empresaId) return;
+
+    try {
+      const historial = await fetchHistorial(controlId, empresaId);
+      console.log("📜 Historial:", historial);
+      return historial;
+    } catch (err) {
+      console.error("Error historial:", err);
+    }
+  };
 
   useEffect(() => {
-    if (data) {
-      const estadoPorControl = {};
-      if (data.seguimientos) {
-        data.seguimientos.forEach((seg) => {
-          estadoPorControl[seg.control_id] = seg.estado_nombre || "No Iniciado";
-        });
-      }
-      const controles = data.controles || data;
-      const mapped = controles.map((control) => {
-        const estadoBackend =
-          estadoPorControl[control.id_control_maestro] || "No Iniciado";
-        return {
-          id: control.id_control_maestro,
-          controlId: control.codigo_norma,
-          title: control.nombre_del_control,
-          description: control.explicacion_del_control,
-          domain: control.area_o_dominio,
-          priority: control.prioridad || "Media",
-          status: STATUS_MAP[estadoBackend] || "not_started",
-          responsible: control.responsable || "No asignado",
-        };
-      });
-      setItems(mapped);
-    }
+    if (!data || data.length === 0) return;
+
+    const controles = Array.isArray(data) ? data : data.controles || [];
+    const mapped = controles.map((control) => ({
+      id: control.id_control_maestro,
+      controlId: control.codigo_norma,
+      title: control.nombre_del_control,
+      description: control.explicacion_del_control,
+      domain: control.area_o_dominio,
+      priority: control.prioridad || "Media",
+      status: "not_started", // estado por defecto
+      justificacion: "",
+      responsible: control.responsable || "No asignado",
+    }));
+    setItems(mapped);
+    console.log("✅ Controles cargados:", mapped.length);
   }, [data]);
 
+  useEffect(() => {
+    if (!empresaId || items.length === 0) return;
+    if (hasLoadedSeguimientos.current) return;
+
+    const loadSeguimientos = async () => {
+      setLoadingSeguimientos(true);
+      try {
+        const seguimientos = await fetchSeguimientos(empresaId);
+        const seguimientosMap = seguimientos.reduce((acc, seg) => {
+          acc[seg.control_id] = {
+            estado_id: seg.estado_id,
+            justificacion: seg.descripcion_justificacion || "",
+            usuario_nombre: seg.usuarios?.nombre_usuario || "Desconocido",
+            fecha_modificacion: seg.fecha_de_modificacion,
+          };
+          return acc;
+        }, {});
+
+        setItems((prevItems) =>
+          prevItems.map((item) => {
+            const seg = seguimientosMap[item.id];
+            if (!seg) return item;
+            const estadoObj = estados?.find(
+              (e) => e.id_estado === seg.estado_id,
+            );
+            const estadoNombre = estadoObj?.nombre_del_estado;
+            const status = STATUS_MAP[estadoNombre] || "not_started";
+            return {
+              ...item,
+              status,
+              justificacion: seg.justificacion,
+              ultimoResponsable: seg.usuario_nombre,
+              ultimaModificacion: seg.fecha_modificacion,
+            };
+          }),
+        );
+        hasLoadedSeguimientos.current = true;
+        console.log("✅ Seguimientos aplicados");
+      } catch (err) {
+        console.warn("⚠️ Error cargando seguimientos:", err);
+        hasLoadedSeguimientos.current = true; // No reintentar
+      } finally {
+        setLoadingSeguimientos(false);
+      }
+    };
+    loadSeguimientos();
+  }, [empresaId, items.length, estados, fetchSeguimientos]);
+
+  // Catálogo de estados
   const catalogStates = useMemo(() => {
     const uniqueStates = [...new Set(items.map((i) => i.status))];
     return uniqueStates.map((s) => ({
@@ -86,35 +163,48 @@ export function useChecklist() {
     });
   }, [items, search, filters]);
 
-  const changeStatus = async (id, newStatus) => {
+  const changeStatus = async (id, newStatus, justificacion) => {
+    const estadoBackend = STATUS_TO_BACKEND[newStatus];
+    const estadoId = estadoNameToId[estadoBackend];
+    if (!estadoId) {
+      alert(`Estado "${newStatus}" no es válido`);
+      return;
+    }
+
+    // Optimistic update
     setItems((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, status: newStatus } : i)),
+      prev.map((i) =>
+        i.id === id ? { ...i, status: newStatus, justificacion } : i,
+      ),
     );
+
     try {
-      const payload = {
-        control_id: id,
-        estado: STATUS_TO_BACKEND[newStatus],
-      };
-      await fetch(`/api/seguimientos`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      await upsertSeguimiento(id, estadoId, justificacion);
     } catch (err) {
-      console.error("Error al actualizar estado", err);
-      setItems((prev) =>
-        prev.map((i) =>
-          i.id === id
-            ? {
-                ...i,
-                status:
-                  newStatus === "not_started" ? "completed" : "not_started",
-              }
-            : i,
-        ),
-      );
+      console.error("Error al guardar seguimiento:", err);
+      alert(err.message);
+      // Revertir
+      const original = items.find((i) => i.id === id);
+      if (original) {
+        setItems((prev) =>
+          prev.map((i) =>
+            i.id === id
+              ? {
+                  ...i,
+                  status: original.status,
+                  justificacion: original.justificacion,
+                }
+              : i,
+          ),
+        );
+      }
     }
   };
+
+  const isLoading =
+    loading ||
+    (items.length === 0 && data?.length === 0) ||
+    loadingSeguimientos;
 
   return {
     items,
@@ -126,9 +216,10 @@ export function useChecklist() {
     setSearch,
     filters,
     setFilters,
-    loading,
+    loading: isLoading,
     error,
     toggleExpand: (id) => setExpandedId((prev) => (prev === id ? null : id)),
     changeStatus,
+    getHistorial,
   };
 }
