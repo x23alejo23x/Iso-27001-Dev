@@ -8,6 +8,7 @@ const STATUS_MAP = {
   "En Progreso": "in_progress",
   "Pendiente Novedad": "pending_update",
   "No Iniciado": "not_started",
+  "No Aplica": "Not_Applicable",
 };
 
 const STATUS_TO_BACKEND = {
@@ -15,6 +16,7 @@ const STATUS_TO_BACKEND = {
   in_progress: "En Progreso",
   pending_update: "Pendiente Novedad",
   not_started: "No Iniciado",
+  Not_Applicable: "No Aplica",
 };
 
 export function useChecklist() {
@@ -73,7 +75,7 @@ export function useChecklist() {
       description: control.explicacion_del_control,
       domain: control.area_o_dominio,
       priority: control.prioridad || "Media",
-      status: "not_started", // estado por defecto
+      status: "not_started",
       justificacion: "",
       responsible: control.responsable || "No asignado",
     }));
@@ -171,7 +173,6 @@ export function useChecklist() {
       return;
     }
 
-    // Optimistic update
     setItems((prev) =>
       prev.map((i) =>
         i.id === id ? { ...i, status: newStatus, justificacion } : i,

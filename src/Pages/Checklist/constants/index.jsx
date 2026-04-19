@@ -1,4 +1,10 @@
-import { CheckCircle2, Clock, Circle, AlertCircle } from "lucide-react";
+import {
+  CheckCircle2,
+  Clock,
+  Circle,
+  AlertCircle,
+  MinusCircle,
+} from "lucide-react";
 
 export const statusStyles = {
   completed:
@@ -9,6 +15,8 @@ export const statusStyles = {
     "bg-amber-50 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 border-amber-200 dark:border-amber-500/30",
   not_started:
     "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700",
+  Not_Applicable:
+    "bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700",
 };
 
 export const statusIcons = {
@@ -16,6 +24,7 @@ export const statusIcons = {
   in_progress: Clock,
   pending_update: AlertCircle,
   not_started: Circle,
+  Not_Applicable: MinusCircle,
 };
 
 export const statusLabels = {
@@ -23,6 +32,7 @@ export const statusLabels = {
   in_progress: "En Progreso",
   pending_update: "Pendiente Novedad",
   not_started: "No Iniciado",
+  Not_Applicable: "No Aplica",
 };
 
 export const priorityStyles = {

@@ -29,6 +29,13 @@ const STAT_CARDS = [
     color: "text-slate-600 dark:text-slate-400",
     bg: "bg-slate-100 dark:bg-slate-800",
   },
+
+  {
+    label: "No Aplica",
+    key: "Not_Applicable",
+    color: "text-slate-600 dark:text-slate-400",
+    bg: "bg-slate-100 dark:bg-slate-800",
+  },
 ];
 
 const PRIORITY_OPTIONS = [
