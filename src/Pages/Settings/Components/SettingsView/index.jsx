@@ -168,7 +168,7 @@ export default function SettingsView() {
       </SettingsSection>
 
       {/* Apariencia */}
-      <SettingsSection
+      {/* <SettingsSection
         icon={Moon}
         title="Apariencia"
         description="Personaliza el aspecto de la plataforma"
@@ -193,7 +193,7 @@ export default function SettingsView() {
             </button>
           ))}
         </div>
-      </SettingsSection>
+      </SettingsSection> */}
 
       {/* Seguridad - Cambiar contraseña */}
       <SettingsSection

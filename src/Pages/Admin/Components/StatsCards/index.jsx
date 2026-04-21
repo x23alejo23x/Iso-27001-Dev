@@ -25,7 +25,8 @@ export default function StatsCards({ users = [], roles = [] }) {
       color:
         "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800",
       textColor: "text-white",
-      iconBg: "bg-white/20",
+      iconBg:
+        "bg-green-50 dark:bg-green-200/20 text-green-600 dark:text-green-400",
     },
     {
       title: "Administradores",

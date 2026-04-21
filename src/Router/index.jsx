@@ -8,7 +8,10 @@ import AdminView from "../pages/Admin/views";
 import SettingsView from "../pages/Settings/views";
 
 function ProtectedRoute({ children }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, ready } = useAuth();
+
+  if (!ready) return null;
+
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }

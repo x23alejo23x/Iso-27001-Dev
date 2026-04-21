@@ -70,20 +70,20 @@ export default function DepartamentoModal({
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg z-50"
           >
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
               <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800">
                 <h3 className="text-xl font-semibold text-slate-900 dark:text-white">
                   Gestionar Departamentos
                 </h3>
                 <button
                   onClick={onClose}
-                  className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-300"
                 >
-                  <X className="w-5 h-5 text-slate-500" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="p-6 space-y-6">
+              <div className="p-6 space-y-6 text-slate-900 dark:text-slate-100">
                 {/* Formulario de creación */}
                 <form onSubmit={handleCreate} className="space-y-4">
                   <div>
@@ -95,20 +95,22 @@ export default function DepartamentoModal({
                       value={nombre}
                       onChange={(e) => setNombre(e.target.value)}
                       placeholder="Ej: Marketing"
-                      className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                      className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                       disabled={isCreating}
                     />
                   </div>
+
                   <div>
                     <textarea
                       value={descripcion}
                       onChange={(e) => setDescripcion(e.target.value)}
                       placeholder="Descripción (opcional)"
                       rows="2"
-                      className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                      className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                       disabled={isCreating}
                     />
                   </div>
+
                   <button
                     type="submit"
                     disabled={isCreating || !nombre.trim()}
@@ -129,12 +131,14 @@ export default function DepartamentoModal({
                   <h4 className="font-medium text-slate-900 dark:text-white mb-3">
                     Departamentos actuales
                   </h4>
+
                   {departamentos.length === 0 ? (
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
                       No hay departamentos creados.
                     </p>
                   ) : (
-                    <ul className="space-y-2 max-h-60 overflow-y-auto">
+                    <ul className="space-y-2 max-h-60 overflow-y-auto border border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                      {" "}
                       {departamentos.map((depto) => (
                         <li
                           key={depto.id_departamento}
@@ -145,11 +149,12 @@ export default function DepartamentoModal({
                               {depto.nombre_departamento}
                             </p>
                             {depto.descripcion && (
-                              <p className="text-xs text-slate-500">
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
                                 {depto.descripcion}
                               </p>
                             )}
                           </div>
+
                           <button
                             onClick={() =>
                               handleDelete(

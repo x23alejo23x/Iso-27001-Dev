@@ -6,7 +6,6 @@ export function useAdminService() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // 🔹 GET roles
   const fetchRoles = useCallback(async () => {
     try {
       setLoading(true);
@@ -21,7 +20,6 @@ export function useAdminService() {
     }
   }, []);
 
-  // 🔹 GET usuarios
   const fetchUsuarios = useCallback(async (empresaId) => {
     try {
       setLoading(true);
@@ -54,7 +52,6 @@ export function useAdminService() {
     }
   }, []);
 
-  // 🔹 POST crear usuario
   const createUsuario = useCallback(async (body) => {
     try {
       setLoading(true);
@@ -76,7 +73,6 @@ export function useAdminService() {
     }
   }, []);
 
-  // 🔹 DELETE usuario
   const deleteUsuario = useCallback(async (usuarioId, empresaId) => {
     try {
       setLoading(true);
@@ -96,7 +92,6 @@ export function useAdminService() {
     }
   }, []);
 
-  // 🔹 PUT actualizar usuario
   const updateUsuario = useCallback(async (usuarioId, body) => {
     try {
       setLoading(true);

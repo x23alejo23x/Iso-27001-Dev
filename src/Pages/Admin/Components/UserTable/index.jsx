@@ -57,7 +57,7 @@ export default function UserTable({ users = [], onEdit, onDelete, loading }) {
     "Fecha Registro",
     "Acciones",
   ];
-
+  const isReady = !loading && users.length > 0;
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
       {/* HEADER */}
@@ -107,10 +107,10 @@ export default function UserTable({ users = [], onEdit, onDelete, loading }) {
           </thead>
 
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-            {loading ? (
+            {!isReady ? (
               <tr>
-                <td colSpan={5} className="py-8 text-center text-slate-500">
-                  <div className="flex items-center justify-center gap-2">
+                <td colSpan={5} className="py-10 text-center">
+                  <div className="flex items-center justify-center gap-2 text-slate-500">
                     <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
                     Cargando usuarios...
                   </div>

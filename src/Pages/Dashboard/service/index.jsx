@@ -7,6 +7,29 @@ export function useDashboardService() {
   const [error, setError] = useState(null);
 
   /**
+   * Obtener Cumplidos para evaluar por fechas establecidas
+   * @param {string} empresaId - UUID de la empresa
+   * @returns {Promise<Object>} cumplimiento
+   */
+  const fetchCumplidos = useCallback(async (empresaId) => {
+    try {
+      setLoading(true);
+      const res = await fetch(
+        `${iso}/api/dashboard/cumplidos?empresa_id=${empresaId}`,
+      );
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.message || "Error al obtener métricas");
+      }
+      return await res.json();
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  /**
    * Obtener métricas generales de cumplimiento
    * @param {string} empresaId - UUID de la empresa
    * @returns {Promise<Object>} Metricas
@@ -85,6 +108,7 @@ export function useDashboardService() {
     error,
     fetchMetricas,
     fetchGapAnalysis,
+    fetchCumplidos,
     fetchPorDominio,
   };
 }

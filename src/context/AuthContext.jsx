@@ -1,4 +1,4 @@
-import { createContext, useContext } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { authService } from "../Pages/Login/service";
 import {
@@ -9,9 +9,9 @@ import {
 } from "../redux/sildes/loginSlice";
 
 const AuthContext = createContext();
-
 export function AuthProvider({ children }) {
   const dispatch = useDispatch();
+  const [ready, setReady] = useState(false);
 
   const { user, error, isAuthenticated, loading } = useSelector(
     (state) => state.login,
@@ -24,6 +24,7 @@ export function AuthProvider({ children }) {
       const data = await authService.login(email, password);
 
       if (data && data.success) {
+        localStorage.setItem("auth", JSON.stringify(data));
         dispatch(loginSuccess(data));
         return true;
       }
@@ -31,25 +32,41 @@ export function AuthProvider({ children }) {
       dispatch(loginFailure("Credenciales incorrectas"));
       return false;
     } catch (err) {
-      const errorMessage = "Credenciales inválidas o error de conexión";
-      dispatch(loginFailure(errorMessage));
+      dispatch(loginFailure("Credenciales inválidas o error de conexión"));
       return false;
     }
   };
 
+  useEffect(() => {
+    const storedAuth = localStorage.getItem("auth");
+
+    if (storedAuth) {
+      try {
+        const parsed = JSON.parse(storedAuth);
+        dispatch(loginSuccess(parsed));
+      } catch {
+        localStorage.removeItem("auth");
+      }
+    }
+
+    setReady(true);
+  }, [dispatch]);
+
   const logout = () => {
+    localStorage.removeItem("auth");
     dispatch(logoutAction());
   };
 
   return (
     <AuthContext.Provider
       value={{
-        user, 
+        user,
         login,
         error,
         logout,
-        isAuthenticated, 
+        isAuthenticated,
         isLoading: loading,
+        ready,
       }}
     >
       {children}

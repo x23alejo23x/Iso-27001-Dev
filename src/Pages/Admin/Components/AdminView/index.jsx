@@ -7,6 +7,7 @@ import StatsCards from "../StatsCards";
 import UserTable from "../UserTable";
 import UserModal from "../UserModal";
 import DepartamentoModal from "../DepartamentoModal";
+import { usePermissions } from "../../../../Hooks/usePermissions";
 import { useAdminService } from "../../service";
 
 export default function AdminView() {
@@ -16,6 +17,7 @@ export default function AdminView() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeptoModalOpen, setIsDeptoModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const permissions = usePermissions();
 
   const {
     loading,
@@ -155,24 +157,28 @@ export default function AdminView() {
           </p>
         </div>
         <div className="flex gap-3">
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setIsDeptoModalOpen(true)}
-            className="flex items-center gap-2 py-2.5 px-5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium"
-          >
-            <Building2 className="w-4 h-4" />
-            Departamentos
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleOpenModal}
-            className="flex items-center gap-2 py-2.5 px-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium"
-          >
-            <UserPlus className="w-4 h-4" />
-            Invitar Usuario
-          </motion.button>
+          {permissions.canManageDepartments && (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setIsDeptoModalOpen(true)}
+              className="flex items-center gap-2 py-2.5 px-5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium"
+            >
+              <Building2 className="w-4 h-4" />
+              Departamentos
+            </motion.button>
+          )}
+          {permissions.canCreateUser && (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleOpenModal}
+              className="flex items-center gap-2 py-2.5 px-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium"
+            >
+              <UserPlus className="w-4 h-4" />
+              Invitar Usuario
+            </motion.button>
+          )}
         </div>
       </div>
 

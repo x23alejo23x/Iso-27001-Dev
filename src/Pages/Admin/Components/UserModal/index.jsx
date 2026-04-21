@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, User, Mail, Lock, Shield, Building, Users } from "lucide-react";
 import { useSelector } from "react-redux";
+import { usePermissions } from "../../../../Hooks/usePermissions";
 
 export default function UserModal({
   isOpen,
@@ -13,6 +14,8 @@ export default function UserModal({
   empresaId,
 }) {
   const authState = useSelector((state) => state.login);
+  const permissions = usePermissions();
+
   const empresaNombre =
     authState?.user?.empresas?.nombre_comercial || "Sin empresa";
 
@@ -41,6 +44,7 @@ export default function UserModal({
         correo_electronico: "",
         password: "",
         rol_id: "",
+        departamento_id: "",
         empresa_id: empresaId || "",
       });
     }
@@ -49,26 +53,29 @@ export default function UserModal({
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!formData.nombre_usuario) {
-      alert("Por favor ingresa el nombre del usuario");
+    const currentUserRole = authState?.user?.rol_id;
+
+    // 🚫 admin no puede editar admins
+    if (
+      currentUserRole === 1 &&
+      userToEdit &&
+      (userToEdit.rol_id === 1 || userToEdit.rol_id === 2)
+    ) {
+      alert("No puedes modificar usuarios administradores");
       return;
     }
-    if (!formData.correo_electronico) {
-      alert("Por favor ingresa el correo electrónico");
+
+    // ✅ permiso correcto
+    if (!permissions.canManageUsers) {
+      alert("No tienes permisos para esta acción");
       return;
     }
-    if (!userToEdit && !formData.password) {
-      alert("Por favor ingresa una contraseña");
-      return;
-    }
-    if (!formData.rol_id) {
-      alert("Por favor selecciona un rol");
-      return;
-    }
-    if (!formData.empresa_id) {
-      alert("Error: No se encontró el ID de la empresa");
-      return;
-    }
+
+    if (!formData.nombre_usuario) return alert("Nombre requerido");
+    if (!formData.correo_electronico) return alert("Correo requerido");
+    if (!userToEdit && !formData.password) return alert("Contraseña requerida");
+    if (!formData.rol_id) return alert("Selecciona un rol");
+    if (!formData.empresa_id) return alert("Empresa inválida");
 
     const payload = {
       nombre_usuario: formData.nombre_usuario,
@@ -79,7 +86,6 @@ export default function UserModal({
       departamento_id: formData.departamento_id || null,
     };
 
-    console.log("Enviando payload:", payload);
     onSubmit(payload);
   };
 
@@ -91,10 +97,9 @@ export default function UserModal({
   };
 
   const rolesList = Array.isArray(roles) ? roles : [];
-  const allowedRoles = rolesList.filter(
-    (role) => role.id_rol === 3 || role.id_rol === 4,
-  );
   const departamentosList = Array.isArray(departamentos) ? departamentos : [];
+
+  const filteredRoles = rolesList;
 
   return (
     <AnimatePresence>
@@ -114,23 +119,29 @@ export default function UserModal({
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-50"
           >
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-600 dark:border-slate-800 overflow-hidden">
-              <div className="flex items-center justify-between p-6 border-b border-blue-950">
-                <h3 className="text-xl font-semibold">
+            <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-2xl shadow-xl border border-slate-600 dark:border-slate-800 overflow-hidden">
+              <div className="flex items-center justify-between p-6 border-b border-blue-950 dark:border-slate-800">
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-white">
                   {userToEdit ? "Editar Usuario" : "Crear Usuario"}
                 </h3>
-                <button onClick={onClose}>
+                <button
+                  className="text-slate-700 dark:text-slate-300 hover:text-red-500"
+                  onClick={onClose}
+                >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              <form
+                onSubmit={handleSubmit}
+                className="p-6 space-y-4 text-slate-900 dark:text-slate-100"
+              >
                 <div className="bg-indigo-50 dark:bg-indigo-950/30 p-3 rounded-xl">
-                  <label className="block text-sm font-medium text-indigo-700 mb-1">
+                  <label className="block text-sm font-medium text-indigo-700 dark:text-indigo-300 mb-1">
                     <Building className="w-4 h-4 inline mr-2" />
                     Empresa
                   </label>
-                  <p className="text-sm font-medium">
+                  <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
                     {empresaNombre || "Cargando..."}
                   </p>
                 </div>
@@ -148,7 +159,7 @@ export default function UserModal({
                     placeholder="Ej: Juan Pérez"
                     required
                     autoComplete="off"
-                    className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none"
+                    className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none"
                   />
                 </div>
 
@@ -165,7 +176,7 @@ export default function UserModal({
                     placeholder="ejemplo@empresa.com"
                     required
                     autoComplete="off"
-                    className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none"
+                    className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none"
                   />
                 </div>
 
@@ -183,7 +194,7 @@ export default function UserModal({
                       placeholder="Mínimo 6 caracteres"
                       required={!userToEdit}
                       autoComplete="new-password"
-                      className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none"
+                      className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none"
                     />
                   </div>
                 )}
@@ -197,7 +208,7 @@ export default function UserModal({
                     name="departamento_id"
                     value={formData.departamento_id}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none"
+                    className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none"
                   >
                     <option value="">Sin departamento</option>
                     {departamentosList.map((depto) => (
@@ -221,11 +232,11 @@ export default function UserModal({
                     value={formData.rol_id}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none"
+                    className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none"
                   >
                     <option value="">Seleccionar rol</option>
                     {rolesList.length > 0 ? (
-                      rolesList.map((role) => (
+                      filteredRoles.map((role) => (
                         <option key={role.id_rol} value={role.id_rol}>
                           {role.nombre_del_rol}
                         </option>
@@ -246,13 +257,16 @@ export default function UserModal({
                   >
                     Cancelar
                   </button>
-                  <button
-                    type="submit"
-                    disabled={rolesList.length === 0 || !empresaId}
-                    className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {userToEdit ? "Actualizar" : "Crear"}
-                  </button>
+
+                  {permissions.canManageUsers && (
+                    <button
+                      type="submit"
+                      disabled={rolesList.length === 0 || !empresaId}
+                      className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {userToEdit ? "Actualizar" : "Crear"}
+                    </button>
+                  )}
                 </div>
               </form>
             </div>

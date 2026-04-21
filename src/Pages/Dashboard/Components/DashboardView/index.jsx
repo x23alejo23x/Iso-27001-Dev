@@ -1,4 +1,3 @@
-// src/pages/Dashboard/DashboardView.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
@@ -9,7 +8,6 @@ import {
   AlertCircle,
   Activity,
   Clock,
-  ArrowRight,
 } from "lucide-react";
 import { useDashboardService } from "../../service";
 import StatCard from "../StatCard";
@@ -17,56 +15,131 @@ import DashboardCharts from "../DashboardCharts";
 
 export default function DashboardView() {
   const navigate = useNavigate();
-  const { loading, fetchMetricas, fetchPorDominio } = useDashboardService();
+  const { loading, fetchMetricas, fetchPorDominio, fetchCumplidos } =
+    useDashboardService();
+
   const [metricas, setMetricas] = useState(null);
   const [porDominio, setPorDominio] = useState(null);
+  const [progresoData, setProgresoData] = useState([]);
+
   const authState = useSelector((state) => state.login);
   const empresaId = authState.user?.empresa_id;
 
+  const fechaInicio =
+    authState.user?.empresa?.fecha_inicio ||
+    authState.user?.empresas?.fecha_inicio;
+
+  const fechaFin =
+    authState.user?.empresa?.fecha_fin || authState.user?.empresas?.fecha_fin;
+
+  const procesarCumplidosParaLinea = (
+    cumplidos,
+    totalControles,
+    inicio,
+    fin,
+  ) => {
+    if (!inicio || !fin || !totalControles) return [];
+
+    const fInicio = new Date(inicio);
+    const fFin = new Date(fin);
+    const hoy = new Date();
+
+    if (isNaN(fInicio) || isNaN(fFin)) return [];
+
+    const totalDias = (fFin - fInicio) / (1000 * 60 * 60 * 24);
+
+    const grupos = new Map();
+
+    cumplidos?.forEach((c) => {
+      const key = new Date(c.fecha).toISOString().slice(0, 7);
+      grupos.set(key, (grupos.get(key) || 0) + 1);
+    });
+
+    let acumulado = 0;
+    const data = [];
+
+    let current = new Date(fInicio);
+    current.setDate(1);
+
+    while (current <= fFin) {
+      const key = current.toISOString().slice(0, 7);
+
+      if (grupos.has(key)) {
+        acumulado += grupos.get(key);
+      }
+
+      const diasDesdeInicio = (current - fInicio) / (1000 * 60 * 60 * 24);
+
+      let meta = (diasDesdeInicio / totalDias) * 100;
+      meta = Math.min(Math.max(meta, 0), 100);
+
+      let cumplimiento = (acumulado / totalControles) * 100;
+
+      if (current > hoy) {
+        cumplimiento = cumplimiento;
+      }
+
+      data.push({
+        date: current.toLocaleDateString("es-ES", {
+          month: "short",
+          year: "2-digit",
+        }),
+        meta: parseFloat(meta.toFixed(2)),
+        cumplimiento: parseFloat(cumplimiento.toFixed(2)),
+      });
+
+      current.setMonth(current.getMonth() + 1);
+    }
+
+    return data;
+  };
+
   useEffect(() => {
     if (!empresaId) return;
+
     const loadData = async () => {
       try {
-        const [metricasData, dominioData] = await Promise.all([
+        const [metricasData, dominioData, cumplidosData] = await Promise.all([
           fetchMetricas(empresaId),
           fetchPorDominio(empresaId),
+          fetchCumplidos(empresaId),
         ]);
+
         setMetricas(metricasData);
         setPorDominio(dominioData);
+
+        const total = metricasData?.total_controles || 0;
+
+        if (fechaInicio && fechaFin) {
+          const lineData = procesarCumplidosParaLinea(
+            cumplidosData,
+            total,
+            fechaInicio,
+            fechaFin,
+          );
+          setProgresoData(lineData);
+        }
       } catch (error) {
         console.error("Error cargando dashboard:", error);
       }
     };
-    loadData();
-  }, [empresaId, fetchMetricas, fetchPorDominio]);
 
-  // Preparar datos para el bar chart (completado vs pendiente por dominio)
+    loadData();
+  }, [
+    empresaId,
+    fetchMetricas,
+    fetchPorDominio,
+    fetchCumplidos,
+    fechaInicio,
+    fechaFin,
+  ]);
+
   const barData = porDominio
     ? Object.entries(porDominio).map(([name, data]) => ({
         name,
         completed: data.porcentaje || 0,
         pending: 100 - (data.porcentaje || 0),
       }))
-    : [];
-
-  // Datos de progreso (podrías obtener de otro endpoint o generar histórico)
-  // Por ahora, simulamos algunos puntos basados en el porcentaje actual
-  const progresoData = metricas
-    ? [
-        {
-          date: "Semana 1",
-          cumplimiento: Math.max(0, metricas.porcentaje_cumplimiento - 8),
-        },
-        {
-          date: "Semana 2",
-          cumplimiento: Math.max(0, metricas.porcentaje_cumplimiento - 5),
-        },
-        {
-          date: "Semana 3",
-          cumplimiento: Math.max(0, metricas.porcentaje_cumplimiento - 2),
-        },
-        { date: "Semana 4", cumplimiento: metricas.porcentaje_cumplimiento },
-      ]
     : [];
 
   if (loading && !metricas) {
@@ -84,7 +157,6 @@ export default function DashboardView() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 pb-12">
-      {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
@@ -94,13 +166,12 @@ export default function DashboardView() {
             Nivel de madurez y cumplimiento de la norma ISO 27001
           </p>
         </div>
-        <div className="hidden md:flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 shadow-sm">
+        {/* <div className="hidden md:flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 shadow-sm">
           <Clock className="w-4 h-4 text-indigo-500" />
           Actualizado ahora
-        </div>
+        </div> */}
       </div>
 
-      {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         <StatCard
           title="Cumplimiento General"
@@ -144,7 +215,6 @@ export default function DashboardView() {
         />
       </div>
 
-      {/* Progress bar */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -166,14 +236,15 @@ export default function DashboardView() {
         <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-3 overflow-hidden">
           <motion.div
             initial={{ width: 0 }}
-            animate={{ width: `${(completados / totalControles) * 100}%` }}
-            transition={{ duration: 1.2, ease: "easeOut", delay: 0.3 }}
+            animate={{
+              width: `${(completados / totalControles) * 100}%`,
+            }}
+            transition={{ duration: 1.2 }}
             className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full"
           />
         </div>
       </motion.div>
 
-      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <DashboardCharts
           porDominioData={porDominio}
@@ -181,61 +252,6 @@ export default function DashboardView() {
           avanceDepartamentoData={barData}
         />
       </div>
-
-      {/* Actividad Reciente - Podrías agregar un endpoint para actividad */}
-      {/* <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.25 }}
-        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl shadow-sm"
-      >
-        <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-1">
-          Resumen de Cumplimiento
-        </h3>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mb-5">
-          Última actualización de métricas
-        </p>
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span>Controles evaluados:</span>
-            <span className="font-medium">{evaluados}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span>Porcentaje de cumplimiento:</span>
-            <span className="font-medium">
-              {metricas?.porcentaje_cumplimiento || 0}%
-            </span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span>Completados:</span>
-            <span className="font-medium text-emerald-600">{completados}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span>En Progreso:</span>
-            <span className="font-medium text-blue-600">
-              {metricas?.por_estado?.["En Progreso"] || 0}
-            </span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span>Pendientes (Novedad):</span>
-            <span className="font-medium text-amber-600">
-              {metricas?.por_estado?.["Pendiente Novedad"] || 0}
-            </span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span>No Iniciados:</span>
-            <span className="font-medium text-slate-500">
-              {metricas?.por_estado?.["No Iniciado"] || 0}
-            </span>
-          </div>
-        </div>
-        <button
-          onClick={() => navigate("/checklist")}
-          className="mt-5 w-full text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center justify-center gap-1 transition-colors"
-        >
-          Ver todos los controles <ArrowRight className="w-3 h-3" />
-        </button>
-      </motion.div> */}
     </div>
   );
 }

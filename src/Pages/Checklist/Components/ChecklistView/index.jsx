@@ -29,7 +29,6 @@ const STAT_CARDS = [
     color: "text-slate-600 dark:text-slate-400",
     bg: "bg-slate-100 dark:bg-slate-800",
   },
-
   {
     label: "No Aplica",
     key: "Not_Applicable",
@@ -62,7 +61,6 @@ export default function ChecklistView() {
     changeStatus,
     getHistorial,
   } = useChecklist();
-
   const dynamicDomains = useMemo(() => {
     if (!items) return [];
     const domains = items.map((i) => i.domain).filter(Boolean);
@@ -93,7 +91,7 @@ export default function ChecklistView() {
     search !== "";
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 pb-12 p-4">
+    <div className="max-w-7xl mx-auto space-y-6 pb-8 p-4">
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
           Checklist ISO 27001
@@ -103,8 +101,7 @@ export default function ChecklistView() {
         </p>
       </div>
 
-      {/* Stats strip */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {STAT_CARDS.map(({ label, key, color, bg }) => {
           const isActive = filters.status === key;
           return (
@@ -131,7 +128,6 @@ export default function ChecklistView() {
         })}
       </div>
 
-      {/* Filtros */}
       <div className="flex flex-col md:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -202,42 +198,51 @@ export default function ChecklistView() {
         </div>
       </div>
 
-      <div className="space-y-3 relative min-h-[300px]">
+      <div className="relative min-h-[390px]">
         {loading ? (
-          <div className="flex justify-center py-20">
+          <div className="flex justify-center items-center h-[450px]">
             <Loader2 className="w-10 h-10 animate-spin text-indigo-500" />
           </div>
         ) : (
-          <AnimatePresence mode="popLayout">
-            {filteredItems.length === 0 ? (
-              <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800">
-                <Shield className="w-12 h-12 mx-auto mb-3 text-slate-300 opacity-50" />
-                <p className="font-medium text-slate-500">
-                  No se encontraron controles
-                </p>
-              </div>
-            ) : (
-              filteredItems.map((item) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all hover:shadow-md"
-                >
-                  <ChecklistItem
-                    item={item}
-                    isExpanded={expandedId === item.id}
-                    onToggle={() => toggleExpand(item.id)}
-                    onGetHistorial={getHistorial}
-                    onStatusChange={(id, newStatus, justificacion) =>
-                      changeStatus(id, newStatus, justificacion)
-                    }
-                  />
-                </motion.div>
-              ))
-            )}
-          </AnimatePresence>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.25 }}
+            className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-2 h-[480px] overflow-hidden"
+          >
+            <div className="h-full overflow-y-auto pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+              <AnimatePresence mode="popLayout">
+                {filteredItems.length === 0 ? (
+                  <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-2xl">
+                    <Shield className="w-12 h-12 mx-auto mb-3 text-slate-300 opacity-50" />
+                    <p className="font-medium text-slate-500">
+                      No se encontraron controles
+                    </p>
+                  </div>
+                ) : (
+                  filteredItems.map((item) => (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all hover:shadow-md mb-3"
+                    >
+                      <ChecklistItem
+                        item={item}
+                        isExpanded={expandedId === item.id}
+                        onToggle={() => toggleExpand(item.id)}
+                        onGetHistorial={getHistorial}
+                        onStatusChange={(id, newStatus, justificacion) =>
+                          changeStatus(id, newStatus, justificacion)
+                        }
+                      />
+                    </motion.div>
+                  ))
+                )}
+              </AnimatePresence>
+            </div>
+          </motion.div>
         )}
       </div>
     </div>

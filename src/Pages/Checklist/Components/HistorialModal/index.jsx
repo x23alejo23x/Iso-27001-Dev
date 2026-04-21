@@ -124,9 +124,10 @@ const HistorialModal = ({ isOpen, onClose, itemId, onGetHistorial }) => {
                     placeholder="Buscar por estado, justificación o usuario..."
                     value={filterText}
                     onChange={(e) => setFilterText(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    className="w-full pl-9 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500"
                   />
                 </div>
+
                 <div className="flex flex-wrap gap-3 items-end mb-6">
                   <div className="flex-1 min-w-[140px]">
                     <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">
@@ -138,10 +139,11 @@ const HistorialModal = ({ isOpen, onClose, itemId, onGetHistorial }) => {
                         type="date"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm"
+                        className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                       />
                     </div>
                   </div>
+
                   <div className="flex-1 min-w-[140px]">
                     <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">
                       Hasta
@@ -152,13 +154,14 @@ const HistorialModal = ({ isOpen, onClose, itemId, onGetHistorial }) => {
                         type="date"
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm"
+                        className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                       />
                     </div>
                   </div>
+
                   <button
                     onClick={clearFilters}
-                    className="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl text-sm text-slate-600 dark:text-slate-300 flex items-center gap-1"
+                    className="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl text-sm text-slate-600 dark:text-slate-300 flex items-center gap-1 transition-colors"
                   >
                     <FilterX className="w-4 h-4" />
                     Limpiar

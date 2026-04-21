@@ -1,5 +1,5 @@
-import { Outlet } from "react-router-dom";
-import { NavLink, useNavigate } from "react-router-dom";
+import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import {
   LayoutDashboard,
   CheckSquare,
@@ -8,27 +8,40 @@ import {
   LogOut,
   ShieldCheck,
   Search,
-  Sun,
-  Moon,
 } from "lucide-react";
-import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
+import { usePermissions } from "../Hooks/usePermissions"; // 👈 usamos el hook
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/" },
   { icon: CheckSquare, label: "Checklist", href: "/checklist" },
-  { icon: Users, label: "Administración", href: "/admin" },
+
+  // 🔥 NUEVO control más claro
+  {
+    icon: Users,
+    label: "Administración",
+    href: "/admin",
+    permission: "viewAdmin",
+  },
+
   { icon: Settings, label: "Configuración", href: "/settings" },
 ];
 
 function Sidebar() {
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const permissions = usePermissions(); // 👈 aquí está la magia
 
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
+
+  // 🔥 filtrado limpio usando permisos
+  const filteredNavItems = navItems.filter((item) => {
+    if (!item.permission) return true;
+    return permissions[item.permission];
+  });
 
   return (
     <aside className="fixed left-0 top-0 bottom-0 w-64 border-r border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl flex flex-col transition-colors z-20">
@@ -42,7 +55,7 @@ function Sidebar() {
       </div>
 
       <div className="flex-1 py-6 px-4 flex flex-col gap-1">
-        {navItems.map((item) => (
+        {filteredNavItems.map((item) => (
           <NavLink
             key={item.href}
             to={item.href}
@@ -84,54 +97,48 @@ function Sidebar() {
 }
 
 function Header() {
-  const { theme, toggleTheme } = useTheme();
-  const { user } = useAuth();
+  const user = useSelector((state) => state.login.user);
+  const usuario = user?.nombre_usuario;
+
+  const getInitials = (nombre) => {
+    if (!nombre) return "AG";
+
+    return nombre
+      .split(" ")
+      .filter((p) => p.length > 0)
+      .slice(0, 2)
+      .map((p) => p[0].toUpperCase())
+      .join("");
+  };
+
+  const initials = getInitials(usuario);
 
   return (
     <header className="h-16 sticky top-0 bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 z-10 w-full transition-colors">
       <div className="flex-1 max-w-xl">
         <div className="relative group">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+          {/* <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-200 group-focus-within:text-indigo-500 transition-colors" />
           <input
             type="text"
             placeholder="Buscar controles, dominios o documentos (Cmd + K)"
-            className="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-900 border-none rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 dark:focus:ring-indigo-500/40 focus:outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 text-slate-900 dark:text-slate-100"
-          />
-          <div className="absolute right-3 top-1/2 -translate-y-1/2">
-            <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-medium text-slate-500 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded shadow-sm">
-              ⌘K
-            </kbd>
-          </div>
+            className="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-900 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:outline-none placeholder-white"
+          /> */}
         </div>
       </div>
 
       <div className="flex items-center gap-4 pl-4">
-        <button
-          onClick={toggleTheme}
-          className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
-          aria-label="Toggle theme"
-        >
-          {theme === "dark" ? (
-            <Sun className="w-5 h-5" />
-          ) : (
-            <Moon className="w-5 h-5" />
-          )}
-        </button>
-
         <div className="h-8 w-px bg-slate-200 dark:bg-slate-800 mx-2" />
 
-        <div className="flex items-center gap-3 cursor-pointer group">
+        <div className="flex items-center gap-3">
           <div className="flex flex-col items-end">
-            <span className="text-sm font-medium text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-              {user?.name || "Admin"}
+            <span className="text-sm text-slate-200 font-medium">
+              {usuario}
             </span>
-            <span className="text-xs text-slate-500 dark:text-slate-400">
-              {user?.role}
-            </span>
+            <span className="text-xs text-slate-500">{user?.role}</span>
           </div>
-          <div className="w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center border border-indigo-200 dark:border-indigo-800">
-            <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">
-              {user?.initials || "AG"}
+          <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center">
+            <span className="text-sm font-bold text-indigo-600">
+              {initials}
             </span>
           </div>
         </div>
@@ -142,11 +149,11 @@ function Header() {
 
 export default function MainLayout() {
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans transition-colors duration-300">
+    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
       <Sidebar />
       <div className="flex-1 flex flex-col pl-64 w-full">
         <Header />
-        <main className="flex-1 p-8 overflow-y-auto">
+        <main className="flex-1 p-5 overflow-y-auto">
           <Outlet />
         </main>
       </div>

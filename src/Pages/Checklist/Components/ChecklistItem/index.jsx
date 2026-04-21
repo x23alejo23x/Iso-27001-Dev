@@ -198,11 +198,12 @@ const ChecklistItem = forwardRef(
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                       Justificación / Comentarios
                     </label>
+
                     <textarea
                       value={localJustificacion}
                       onChange={(e) => setLocalJustificacion(e.target.value)}
                       rows="3"
-                      className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none"
+                      className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500"
                       placeholder="Agrega una justificación o comentario sobre el estado del control..."
                     />
                   </div>
