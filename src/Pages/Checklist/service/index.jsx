@@ -62,9 +62,36 @@ export function useChecklistService() {
     },
     [authState],
   );
+  const analizarDocumentoIA = useCallback(
+    async (file, controlId) => {
+      const empresaId = authState.user?.empresa_id;
+
+      if (!empresaId) {
+        throw new Error("No se pudo obtener el empresa_id");
+      }
+
+      const formData = new FormData();
+      formData.append("empresa_id", empresaId);
+      formData.append("control_id", controlId);
+      formData.append("archivo", file);
+
+      const response = await fetch(`${iso}/api/ia/analizar`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Error al analizar documento");
+      }
+
+      return response.json();
+    },
+    [authState],
+  );
 
   const upsertSeguimiento = useCallback(
-    async (controlId, estadoId, justificacion) => {
+    async (controlId, estadoId, justificacion, url_evidencia) => {
       const empresaId = authState.user?.empresa_id;
       const quienActualizoId = authState.user?.id_usuario;
       const nombreResponsable = authState.user?.nombre_usuario;
@@ -81,6 +108,7 @@ export function useChecklistService() {
         estado_id: estadoId,
         nombre_del_responsable: nombreResponsable,
         descripcion_justificacion: justificacion || "",
+        url_evidencia: url_evidencia || "",
       };
 
       const response = await fetch(
@@ -108,6 +136,7 @@ export function useChecklistService() {
     error,
     fetchSeguimientos,
     upsertSeguimiento,
+    analizarDocumentoIA,
     fetchHistorial,
   };
 }

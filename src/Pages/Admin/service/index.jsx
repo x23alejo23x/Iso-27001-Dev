@@ -1,4 +1,3 @@
-// Admin/service/index.jsx
 import { useCallback, useState } from "react";
 import { iso } from "../../../Server";
 
@@ -154,6 +153,52 @@ export function useAdminService() {
     }
   }, []);
 
+  // Obtener datos de la empresa
+  const fetchEmpresa = useCallback(async (empresaId) => {
+    try {
+      setLoading(true);
+      const res = await fetch(
+        `${iso}/api/admin/empresa?empresa_id=${empresaId}`,
+      );
+      if (!res.ok) throw new Error("Error al obtener empresa");
+      return await res.json();
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Actualizar fechas de la empresa (única declaración)
+  const updateEmpresaFechas = useCallback(
+    async (empresaId, fecha_inicio, fecha_fin) => {
+      try {
+        setLoading(true);
+        const res = await fetch(`${iso}/api/admin/empresa/fechas`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            empresa_id: empresaId,
+            fecha_inicio,
+            fecha_fin,
+          }),
+        });
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.message || "Error al actualizar fechas");
+        }
+        return await res.json();
+      } catch (err) {
+        setError(err.message);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
   return {
     loading,
     error,
@@ -165,5 +210,7 @@ export function useAdminService() {
     fetchDepartamentos,
     createDepartamento,
     deleteDepartamento,
+    fetchEmpresa,
+    updateEmpresaFechas,
   };
 }

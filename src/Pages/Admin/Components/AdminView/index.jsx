@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import StatsCards from "../StatsCards";
 import UserTable from "../UserTable";
 import UserModal from "../UserModal";
+import EmpresaFechasCard from "../EmpresaFechasCard";
 import DepartamentoModal from "../DepartamentoModal";
 import { usePermissions } from "../../../../Hooks/usePermissions";
 import { useAdminService } from "../../service";
@@ -18,7 +19,7 @@ export default function AdminView() {
   const [isDeptoModalOpen, setIsDeptoModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const permissions = usePermissions();
-
+  const [empresa, setEmpresa] = useState(null);
   const {
     loading,
     fetchRoles,
@@ -29,6 +30,8 @@ export default function AdminView() {
     updateUsuario,
     createDepartamento,
     deleteDepartamento,
+    fetchEmpresa,
+    updateEmpresaFechas,
   } = useAdminService();
   const authState = useSelector((state) => state.login);
   const empresaId = authState.user?.empresa_id;
@@ -38,9 +41,23 @@ export default function AdminView() {
       loadRoles();
       loadUsers();
       loadDepartamentos();
+      loadEmpresa();
     }
   }, [empresaId]);
 
+  const loadEmpresa = async () => {
+    try {
+      const data = await fetchEmpresa(empresaId);
+      setEmpresa(data);
+    } catch (error) {
+      console.error("Error al cargar empresa:", error);
+    }
+  };
+
+  const handleUpdateFechas = async (id, inicio, fin) => {
+    const updated = await updateEmpresaFechas(id, inicio, fin);
+    setEmpresa(updated);
+  };
   const loadRoles = async () => {
     try {
       const rolesData = await fetchRoles();
@@ -189,6 +206,14 @@ export default function AdminView() {
         onDelete={handleDeleteUser}
         loading={loading}
       />
+      {/* Tarjeta de fechas */}
+      {empresa && (
+        <EmpresaFechasCard
+          empresaId={empresaId}
+          empresaData={empresa}
+          onUpdate={handleUpdateFechas}
+        />
+      )}
 
       <UserModal
         isOpen={isModalOpen}

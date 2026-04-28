@@ -59,6 +59,7 @@ export default function ChecklistView() {
     error,
     toggleExpand,
     changeStatus,
+    analizarDocumentoIA,
     getHistorial,
   } = useChecklist();
   const dynamicDomains = useMemo(() => {
@@ -99,33 +100,6 @@ export default function ChecklistView() {
         <p className="text-slate-500 dark:text-slate-400 mt-1">
           Gestión y seguimiento de los controles de seguridad
         </p>
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        {STAT_CARDS.map(({ label, key, color, bg }) => {
-          const isActive = filters.status === key;
-          return (
-            <button
-              key={key}
-              onClick={() =>
-                setFilters((prev) => ({
-                  ...prev,
-                  status: isActive ? "all" : key,
-                }))
-              }
-              className={`${bg} rounded-xl p-4 text-left transition-all hover:scale-[1.02] border-2 ${
-                isActive ? "border-current" : "border-transparent"
-              } ${color}`}
-            >
-              <div className="text-2xl font-bold">
-                {loading ? "..." : stats[key] || 0}
-              </div>
-              <div className="text-xs font-medium mt-0.5 opacity-80">
-                {label}
-              </div>
-            </button>
-          );
-        })}
       </div>
 
       <div className="flex flex-col md:flex-row gap-3">
@@ -183,18 +157,54 @@ export default function ChecklistView() {
               onClick={handleResetFilters}
               className="flex items-center gap-1.5 px-3 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl text-sm text-slate-600 dark:text-slate-300 transition-colors"
             >
-              <X className="w-3.5 h-3.5" /> Limpiar
+              <X className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
       </div>
-
-      <div className="flex justify-between items-center text-sm">
-        <div className="text-slate-500 dark:text-slate-400 uppercase font-bold tracking-tight">
-          Listado de Controles
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+        {/* Lado izquierdo: título + contador */}
+        <div className="flex items-center gap-2">
+          <div className="h-5 w-1 bg-indigo-500 rounded-full"></div>
+          <h2 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+            Listado de Controles
+          </h2>
+          <div className="bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-full text-xs font-semibold">
+            {filteredItems.length} encontrados
+          </div>
         </div>
-        <div className="bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 px-3 py-1 rounded-full font-bold">
-          {filteredItems.length} Encontrados
+
+        {/* Píldoras de estadísticas a la derecha */}
+        <div className="flex flex-wrap gap-2">
+          {STAT_CARDS.map(({ label, key, color, bg }) => {
+            const isActive = filters.status === key;
+            return (
+              <button
+                key={key}
+                onClick={() =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    status: isActive ? "all" : key,
+                  }))
+                }
+                className={`
+            px-3 py-1.5 rounded-full text-xs font-medium transition-all
+            ${
+              isActive
+                ? "bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-300 dark:ring-indigo-800"
+                : `${bg} ${color} hover:scale-105`
+            }
+          `}
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="font-bold">
+                    {loading ? "…" : stats[key] || 0}
+                  </span>
+                  <span className="opacity-80">{label}</span>
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -213,7 +223,10 @@ export default function ChecklistView() {
             <div className="h-full overflow-y-auto pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               <AnimatePresence mode="popLayout">
                 {filteredItems.length === 0 ? (
-                  <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-2xl">
+                  <div
+                    className="h-full justify-content text-center
+                   py-16 bg-white dark:bg-slate-900 rounded-2xl"
+                  >
                     <Shield className="w-12 h-12 mx-auto mb-3 text-slate-300 opacity-50" />
                     <p className="font-medium text-slate-500">
                       No se encontraron controles
@@ -233,8 +246,19 @@ export default function ChecklistView() {
                         isExpanded={expandedId === item.id}
                         onToggle={() => toggleExpand(item.id)}
                         onGetHistorial={getHistorial}
-                        onStatusChange={(id, newStatus, justificacion) =>
-                          changeStatus(id, newStatus, justificacion)
+                        onGetAnalisi_IA={analizarDocumentoIA}
+                        onStatusChange={(
+                          id,
+                          newStatus,
+                          justificacion,
+                          urlEvidencia,
+                        ) =>
+                          changeStatus(
+                            id,
+                            newStatus,
+                            justificacion,
+                            urlEvidencia,
+                          )
                         }
                       />
                     </motion.div>

@@ -2,13 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { motion } from "framer-motion";
-import {
-  Shield,
-  CheckCircle2,
-  AlertCircle,
-  Activity,
-  Clock,
-} from "lucide-react";
+import { Shield, CheckCircle2, AlertCircle, Activity } from "lucide-react";
 import { useDashboardService } from "../../service";
 import StatCard from "../StatCard";
 import DashboardCharts from "../DashboardCharts";
@@ -25,20 +19,17 @@ export default function DashboardView() {
   const authState = useSelector((state) => state.login);
   const empresaId = authState.user?.empresa_id;
 
-  const fechaInicio =
-    authState.user?.empresa?.fecha_inicio ||
-    authState.user?.empresas?.fecha_inicio;
-
-  const fechaFin =
-    authState.user?.empresa?.fecha_fin || authState.user?.empresas?.fecha_fin;
-
+  // ✅ 1. Obtener fechas correctamente desde Redux (estructura empresa)
+  const fechaInicio = authState.user.empresas?.fecha_inicio;
+  const fechaFin = authState.user.empresas?.fecha_fin;
+  // Función mejorada para generar datos de evolución (mes a mes dentro del rango)
   const procesarCumplidosParaLinea = (
-    cumplidos,
+    cumplidos = [],
     totalControles,
     inicio,
     fin,
   ) => {
-    if (!inicio || !fin || !totalControles) return [];
+    if (!inicio || !fin || !totalControles || totalControles === 0) return [];
 
     const fInicio = new Date(inicio);
     const fFin = new Date(fin);
@@ -46,38 +37,45 @@ export default function DashboardView() {
 
     if (isNaN(fInicio) || isNaN(fFin)) return [];
 
-    const totalDias = (fFin - fInicio) / (1000 * 60 * 60 * 24);
-
+    // Agrupar cumplidos por mes
     const grupos = new Map();
-
-    cumplidos?.forEach((c) => {
-      const key = new Date(c.fecha).toISOString().slice(0, 7);
-      grupos.set(key, (grupos.get(key) || 0) + 1);
+    cumplidos.forEach((c) => {
+      if (c?.fecha) {
+        const key = new Date(c.fecha).toISOString().slice(0, 7); // YYYY-MM
+        grupos.set(key, (grupos.get(key) || 0) + 1);
+      }
     });
 
     let acumulado = 0;
     const data = [];
 
     let current = new Date(fInicio);
-    current.setDate(1);
+    current.setDate(1); // ir al primer día del mes
 
     while (current <= fFin) {
       const key = current.toISOString().slice(0, 7);
+      const cantidadMes = grupos.get(key) || 0;
+      acumulado += cantidadMes;
 
-      if (grupos.has(key)) {
-        acumulado += grupos.get(key);
-      }
-
-      const diasDesdeInicio = (current - fInicio) / (1000 * 60 * 60 * 24);
+      // Calcular días transcurridos desde inicio hasta el final del mes actual
+      const endOfMonth = new Date(
+        current.getFullYear(),
+        current.getMonth() + 1,
+        1,
+      );
+      const lastDate = endOfMonth <= fFin ? endOfMonth : new Date(fFin);
+      const diasDesdeInicio = (lastDate - fInicio) / (1000 * 60 * 60 * 24);
+      const totalDias = (fFin - fInicio) / (1000 * 60 * 60 * 24);
 
       let meta = (diasDesdeInicio / totalDias) * 100;
       meta = Math.min(Math.max(meta, 0), 100);
 
       let cumplimiento = (acumulado / totalControles) * 100;
-
+      // Si el mes es futuro, no mostramos progreso (dejamos el acumulado hasta hoy)
       if (current > hoy) {
-        cumplimiento = cumplimiento;
+        cumplimiento = ((acumulado - cantidadMes) / totalControles) * 100;
       }
+      cumplimiento = Math.min(Math.max(cumplimiento, 0), 100);
 
       data.push({
         date: current.toLocaleDateString("es-ES", {
@@ -109,8 +107,7 @@ export default function DashboardView() {
         setPorDominio(dominioData);
 
         const total = metricasData?.total_controles || 0;
-
-        if (fechaInicio && fechaFin) {
+        if (fechaInicio && fechaFin && total > 0) {
           const lineData = procesarCumplidosParaLinea(
             cumplidosData,
             total,
@@ -118,6 +115,8 @@ export default function DashboardView() {
             fechaFin,
           );
           setProgresoData(lineData);
+        } else {
+          setProgresoData([]);
         }
       } catch (error) {
         console.error("Error cargando dashboard:", error);
@@ -166,10 +165,6 @@ export default function DashboardView() {
             Nivel de madurez y cumplimiento de la norma ISO 27001
           </p>
         </div>
-        {/* <div className="hidden md:flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 shadow-sm">
-          <Clock className="w-4 h-4 text-indigo-500" />
-          Actualizado ahora
-        </div> */}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -236,9 +231,7 @@ export default function DashboardView() {
         <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-3 overflow-hidden">
           <motion.div
             initial={{ width: 0 }}
-            animate={{
-              width: `${(completados / totalControles) * 100}%`,
-            }}
+            animate={{ width: `${(completados / totalControles) * 100}%` }}
             transition={{ duration: 1.2 }}
             className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full"
           />

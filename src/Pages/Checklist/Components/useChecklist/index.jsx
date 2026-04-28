@@ -28,7 +28,9 @@ export function useChecklist() {
     fetchSeguimientos,
     upsertSeguimiento,
     fetchHistorial,
+    analizarDocumentoIA,
   } = useChecklistService();
+
   const authState = useSelector((state) => state.login);
   const empresaId = authState.user?.empresa_id;
 
@@ -41,6 +43,7 @@ export function useChecklist() {
     priority: "all",
   });
   const [expandedId, setExpandedId] = useState(null);
+
   const hasFetched = useRef(false);
 
   const estadoNameToId = useMemo(() => {
@@ -51,6 +54,9 @@ export function useChecklist() {
     return map;
   }, [estados]);
 
+  // =============================
+  // 🔥 CARGA INICIAL
+  // =============================
   useEffect(() => {
     if (loading || !data?.length || !estados?.length || !empresaId) return;
     if (hasFetched.current) return;
@@ -59,6 +65,7 @@ export function useChecklist() {
     const init = async () => {
       try {
         const controles = Array.isArray(data) ? data : data.controles || [];
+
         const mapped = controles.map((control) => ({
           id: control.id_control_maestro,
           controlId: control.codigo_norma,
@@ -69,9 +76,11 @@ export function useChecklist() {
           status: "not_started",
           justificacion: "",
           responsible: control.responsable || "No asignado",
+          analisisIA: null,
         }));
 
         const seguimientos = await fetchSeguimientos(empresaId);
+
         const seguimientosMap = seguimientos.reduce((acc, seg) => {
           if (
             !acc[seg.control_id] ||
@@ -86,13 +95,18 @@ export function useChecklist() {
         const merged = mapped.map((item) => {
           const seg = seguimientosMap[item.id];
           if (!seg) return item;
+
           const estadoObj = estados.find((e) => e.id_estado === seg.estado_id);
           const status =
             STATUS_MAP[estadoObj?.nombre_del_estado] || "not_started";
+
+          const urlEvidencia = seg.Url_Evidencia || "";
+
           return {
             ...item,
             status,
             justificacion: seg.descripcion_justificacion || "",
+            url_evidencia: urlEvidencia,
             ultimoResponsable: seg.usuarios?.nombre_usuario || "Desconocido",
             ultimaModificacion: seg.fecha_de_modificacion,
           };
@@ -109,6 +123,34 @@ export function useChecklist() {
     init();
   }, [loading, data, estados, empresaId, fetchSeguimientos]);
 
+  // =============================
+  // 🔥 GUARDAR IA EN MEMORIA
+  // =============================
+  const guardarAnalisisIA = (controlId, dataIA) => {
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === controlId
+          ? {
+              ...i,
+              analisisIA: dataIA,
+            }
+          : i,
+      ),
+    );
+  };
+
+  // =============================
+  // 🔥 WRAPPER IA
+  // =============================
+  const analizarDocumentoIAWrapper = async (file, controlId) => {
+    const result = await analizarDocumentoIA(file, controlId);
+    guardarAnalisisIA(controlId, result);
+    return result;
+  };
+
+  // =============================
+  // HISTORIAL
+  // =============================
   const getHistorial = async (controlId) => {
     if (!empresaId) return;
     try {
@@ -118,6 +160,9 @@ export function useChecklist() {
     }
   };
 
+  // =============================
+  // FILTROS / STATS
+  // =============================
   const catalogStates = useMemo(() => {
     const uniqueStates = [...new Set(items.map((i) => i.status))];
     return uniqueStates.map((s) => ({
@@ -141,17 +186,24 @@ export function useChecklist() {
         [i.title, i.controlId, i.description].some((f) =>
           f?.toLowerCase().includes(search.toLowerCase()),
         );
+
       const matchStatus =
         filters.status === "all" || i.status === filters.status;
+
       const matchDomain =
         filters.domain === "all" || i.domain === filters.domain;
+
       const matchPriority =
         filters.priority === "all" || i.priority === filters.priority;
+
       return matchSearch && matchStatus && matchDomain && matchPriority;
     });
   }, [items, search, filters]);
 
-  const changeStatus = async (id, newStatus, justificacion) => {
+  // =============================
+  // CAMBIAR ESTADO
+  // =============================
+  const changeStatus = async (id, newStatus, justificacion, urlEvidencia) => {
     const estadoBackend = STATUS_TO_BACKEND[newStatus];
     const estadoId = estadoNameToId[estadoBackend];
     if (!estadoId) {
@@ -160,16 +212,24 @@ export function useChecklist() {
     }
 
     const original = items.find((i) => i.id === id);
+
+    // Actualización optimista local
     setItems((prev) =>
       prev.map((i) =>
-        i.id === id ? { ...i, status: newStatus, justificacion } : i,
+        i.id === id
+          ? {
+              ...i,
+              status: newStatus,
+              justificacion: justificacion,
+              url_evidencia: urlEvidencia || "",
+            }
+          : i,
       ),
     );
 
     try {
-      await upsertSeguimiento(id, estadoId, justificacion);
+      await upsertSeguimiento(id, estadoId, justificacion, urlEvidencia);
     } catch (err) {
-      console.error("Error al guardar seguimiento:", err);
       alert(err.message);
       if (original) {
         setItems((prev) =>
@@ -179,6 +239,7 @@ export function useChecklist() {
                   ...i,
                   status: original.status,
                   justificacion: original.justificacion,
+                  url_evidencia: original.url_evidencia || "",
                 }
               : i,
           ),
@@ -199,8 +260,12 @@ export function useChecklist() {
     setFilters,
     loading: !isReady,
     error,
+
     toggleExpand: (id) => setExpandedId((prev) => (prev === id ? null : id)),
+
     changeStatus,
     getHistorial,
+
+    analizarDocumentoIA: analizarDocumentoIAWrapper,
   };
 }

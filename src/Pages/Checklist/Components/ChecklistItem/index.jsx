@@ -1,4 +1,4 @@
-import { useState, forwardRef, useEffect } from "react";
+import { useState, forwardRef, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import toast, { Toaster } from "react-hot-toast";
 import {
@@ -8,29 +8,87 @@ import {
   Calendar,
   Save,
   CheckCircle2,
+  Link, // Agregado para el ícono de la URL
 } from "lucide-react";
 import HistorialModal from "../HistorialModal";
+import Analisi_IA_Modal from "../Analisi_IA_Modal";
 import StatusDropdown from "../StatusDropdown";
 import { priorityStyles, priorityLabels, statusStyles } from "../../constants";
+import { parseControlDetails } from "../../utils/parseControlDetails";
+import ControlDetailsExpanded from "./ControlDetailsExpanded";
 
 const ChecklistItem = forwardRef(
-  ({ item, isExpanded, onToggle, onStatusChange, onGetHistorial }, ref) => {
+  (
+    {
+      item,
+      isExpanded,
+      onToggle,
+      onStatusChange,
+      onGetHistorial,
+      onGetAnalisi_IA,
+    },
+    ref,
+  ) => {
     const [localStatus, setLocalStatus] = useState(item.status);
     const [localJustificacion, setLocalJustificacion] = useState(
       item.justificacion || "",
     );
+    const [localUrlEvidencia, setLocalUrlEvidencia] = useState(
+      item.url_evidencia || "",
+    );
     const [isSaving, setIsSaving] = useState(false);
     const [showHistorial, setShowHistorial] = useState(false);
+    const [showAnalisi_IA, setShowAnalisi_IA] = useState(false);
+    const [justificacionError, setJustificacionError] = useState("");
+
+    // Verifica si el estado local coincide con el guardado en el backend
+    const isStatusSaved = localStatus === item.status;
+
+    // El botón de IA se habilita solo si:
+    // 1. El estado local no es "not_started"
+    // 2. El estado local está guardado (persistido)
+    const canUseIA =
+      localStatus && localStatus !== "not_started" && isStatusSaved;
+
+    // Parsear detalles del control
+    const controlDetails = useMemo(
+      () => parseControlDetails(item.description),
+      [item.description],
+    );
 
     useEffect(() => {
       setLocalStatus(item.status);
       setLocalJustificacion(item.justificacion || "");
-    }, [item.status, item.justificacion]);
+      setLocalUrlEvidencia(item.url_evidencia || "");
+      setJustificacionError("");
+    }, [item.status, item.justificacion, item.url_evidencia]);
 
     const handleSave = async () => {
+      // Validar que la justificación no esté vacía
+      const trimmed = localJustificacion.trim();
+      if (!trimmed) {
+        setJustificacionError(
+          "La justificación es obligatoria para guardar los cambios.",
+        );
+        return;
+      }
+      setJustificacionError("");
+
+      // ✅ Agrega este log para verificar el valor
+      console.log(
+        "🔍 Valor de localUrlEvidencia antes de guardar:",
+        localUrlEvidencia,
+      );
+
       setIsSaving(true);
       try {
-        await onStatusChange(item.id, localStatus, localJustificacion);
+        // ✅ CORREGIDO: solo 4 argumentos, sin duplicar
+        await onStatusChange(
+          item.id,
+          localStatus,
+          localJustificacion,
+          localUrlEvidencia, // ← solo una vez
+        );
         toast.success("Guardado correctamente", {
           duration: 3000,
           position: "top-center",
@@ -64,6 +122,17 @@ const ChecklistItem = forwardRef(
 
     const handleStatusChange = (newStatus) => {
       setLocalStatus(newStatus);
+    };
+
+    // Tooltip dinámico para el botón IA
+    const getTooltipIA = () => {
+      if (localStatus === "not_started") {
+        return "Selecciona un estado diferente a 'No iniciado' para usar el análisis con IA";
+      }
+      if (!isStatusSaved) {
+        return "Guarda primero el cambio de estado para habilitar el análisis con IA";
+      }
+      return "";
     };
 
     return (
@@ -116,7 +185,7 @@ const ChecklistItem = forwardRef(
                 </h3>
                 <p
                   className={`text-sm text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed ${
-                    isExpanded ? "" : "line-clamp-1"
+                    isExpanded ? "hidden" : "line-clamp-1"
                   }`}
                 >
                   {item.description}
@@ -193,44 +262,125 @@ const ChecklistItem = forwardRef(
                     </div>
                   </div>
 
-                  {/* Justificación */}
+                  {/* Detalles del control */}
+                  <ControlDetailsExpanded details={controlDetails} />
+
+                  {/* Justificación - campo obligatorio */}
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      Justificación / Comentarios
+                      Justificación / Comentarios{" "}
+                      <span className="text-red-500">*</span>
                     </label>
-
                     <textarea
                       value={localJustificacion}
-                      onChange={(e) => setLocalJustificacion(e.target.value)}
+                      onChange={(e) => {
+                        setLocalJustificacion(e.target.value);
+                        if (justificacionError) setJustificacionError("");
+                      }}
                       rows="3"
-                      className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                      placeholder="Agrega una justificación o comentario sobre el estado del control..."
+                      className={`w-full px-4 py-2 bg-white dark:bg-slate-800 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 ${
+                        justificacionError
+                          ? "border-red-500 dark:border-red-500"
+                          : "border-slate-200 dark:border-slate-700"
+                      }`}
+                      placeholder="Agrega una justificación obligatoria sobre el estado del control..."
                     />
+                    {justificacionError && (
+                      <p className="text-xs text-red-500 mt-1">
+                        {justificacionError}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Campo de URL de evidencia - opcional */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      URL de evidencia (opcional)
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Link className="h-4 w-4 text-slate-400" />
+                      </div>
+                      <input
+                        type="url"
+                        value={localUrlEvidencia}
+                        onChange={(e) => {
+                          console.log(
+                            "✏️ Input URL cambiado a:",
+                            e.target.value,
+                          );
+                          setLocalUrlEvidencia(e.target.value);
+                        }}
+                        className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none placeholder:text-slate-400"
+                        placeholder="https://ejemplo.com/evidencia.pdf"
+                      />
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Enlace a documento, drive, evidencia, etc.
+                    </p>
                   </div>
 
                   {/* Botones de acción */}
-                  <div className="flex justify-between items-center">
-                    <button className="flex items-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-xl text-sm font-medium w-40">
-                      <Paperclip className="w-4 h-4" />
-                      Evidencias
-                    </button>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setShowHistorial(true)}
-                        className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-xl text-sm font-medium w-40"
-                      >
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <button className="flex items-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-xl text-sm font-medium w-40">
                         <Paperclip className="w-4 h-4" />
-                        Historial
+                        Evidencias
                       </button>
-                      <button
-                        onClick={handleSave}
-                        disabled={isSaving}
-                        className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium w-40"
-                      >
-                        <Save className="w-4 h-4" />
-                        {isSaving ? "Guardando..." : "Guardar"}
-                      </button>
+                      <div className="flex gap-2">
+                        {/* Botón IA con validación */}
+                        <button
+                          onClick={() => canUseIA && setShowAnalisi_IA(true)}
+                          disabled={!canUseIA}
+                          title={getTooltipIA()}
+                          className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-medium w-40 transition-colors ${
+                            canUseIA
+                              ? "bg-slate-600 hover:bg-slate-700 text-white cursor-pointer"
+                              : "bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed"
+                          }`}
+                        >
+                          <Paperclip className="w-4 h-4" />
+                          Analisis Con IA
+                        </button>
+
+                        <button
+                          onClick={() => setShowHistorial(true)}
+                          className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-xl text-sm font-medium w-40"
+                        >
+                          <Paperclip className="w-4 h-4" />
+                          Historial
+                        </button>
+
+                        <button
+                          onClick={handleSave}
+                          disabled={isSaving}
+                          className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-medium w-40 ${
+                            isSaving
+                              ? "bg-indigo-300 dark:bg-indigo-800 cursor-not-allowed"
+                              : "bg-indigo-600 hover:bg-indigo-700"
+                          } text-white`}
+                        >
+                          <Save className="w-4 h-4" />
+                          {isSaving ? "Guardando..." : "Guardar"}
+                        </button>
+                      </div>
                     </div>
+
+                    {/* Mensajes informativos para IA */}
+                    {!canUseIA &&
+                      localStatus !== "not_started" &&
+                      !isStatusSaved && (
+                        <p className="text-xs text-amber-600 dark:text-amber-400 text-right">
+                          ⚠️ Debes guardar el cambio de estado para usar el
+                          análisis con IA
+                        </p>
+                      )}
+                    {localStatus === "not_started" && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400 text-right">
+                        ℹ️ Selecciona un estado diferente a "No iniciado" y
+                        guarda para habilitar el análisis con IA
+                      </p>
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -244,6 +394,14 @@ const ChecklistItem = forwardRef(
           itemId={item.id}
           onGetHistorial={onGetHistorial}
         />
+        <Analisi_IA_Modal
+          isOpen={showAnalisi_IA}
+          onClose={() => setShowAnalisi_IA(false)}
+          itemId={item.id}
+          item={item}
+          onGetAnalisi_IA={onGetAnalisi_IA}
+        />
+
         <Toaster
           position="top-center"
           reverseOrder={false}

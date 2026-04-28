@@ -7,37 +7,35 @@ import {
   Users,
   LogOut,
   ShieldCheck,
-  Search,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { usePermissions } from "../Hooks/usePermissions"; // 👈 usamos el hook
+import { usePermissions } from "../Hooks/usePermissions";
+import { useTheme } from "../context/ThemeContext";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/" },
   { icon: CheckSquare, label: "Checklist", href: "/checklist" },
-
-  // 🔥 NUEVO control más claro
   {
     icon: Users,
     label: "Administración",
     href: "/admin",
     permission: "viewAdmin",
   },
-
   { icon: Settings, label: "Configuración", href: "/settings" },
 ];
 
 function Sidebar() {
   const { logout } = useAuth();
   const navigate = useNavigate();
-  const permissions = usePermissions(); // 👈 aquí está la magia
+  const permissions = usePermissions();
 
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
 
-  // 🔥 filtrado limpio usando permisos
   const filteredNavItems = navItems.filter((item) => {
     if (!item.permission) return true;
     return permissions[item.permission];
@@ -98,11 +96,11 @@ function Sidebar() {
 
 function Header() {
   const user = useSelector((state) => state.login.user);
+  const { theme, toggleTheme } = useTheme();
   const usuario = user?.nombre_usuario;
 
   const getInitials = (nombre) => {
     if (!nombre) return "AG";
-
     return nombre
       .split(" ")
       .filter((p) => p.length > 0)
@@ -116,28 +114,36 @@ function Header() {
   return (
     <header className="h-16 sticky top-0 bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 z-10 w-full transition-colors">
       <div className="flex-1 max-w-xl">
-        <div className="relative group">
-          {/* <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-200 group-focus-within:text-indigo-500 transition-colors" />
-          <input
-            type="text"
-            placeholder="Buscar controles, dominios o documentos (Cmd + K)"
-            className="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-900 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:outline-none placeholder-white"
-          /> */}
-        </div>
+        {/* Espacio para búsqueda si quieres agregarla después */}
       </div>
 
-      <div className="flex items-center gap-4 pl-4">
-        <div className="h-8 w-px bg-slate-200 dark:bg-slate-800 mx-2" />
+      <div className="flex items-center gap-4">
+        {/* Botón de tema */}
+        <button
+          onClick={toggleTheme}
+          className="relative w-9 h-9 rounded-full flex items-center justify-center transition-all hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
+          aria-label="Cambiar tema"
+        >
+          {theme === "dark" ? (
+            <Sun className="w-5 h-5" />
+          ) : (
+            <Moon className="w-5 h-5" />
+          )}
+        </button>
+
+        <div className="h-8 w-px bg-slate-200 dark:bg-slate-800" />
 
         <div className="flex items-center gap-3">
           <div className="flex flex-col items-end">
-            <span className="text-sm text-slate-200 font-medium">
+            <span className="text-sm text-slate-900 dark:text-white font-medium">
               {usuario}
             </span>
-            <span className="text-xs text-slate-500">{user?.role}</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              {user?.roles_de_usuario?.nombre_del_rol || "Usuario"}
+            </span>
           </div>
-          <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center">
-            <span className="text-sm font-bold text-indigo-600">
+          <div className="w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
+            <span className="text-sm font-bold text-indigo-600 dark:text-indigo-300">
               {initials}
             </span>
           </div>
