@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, User, Mail, Lock, Shield, Building, Users } from "lucide-react";
 import { useSelector } from "react-redux";
-import { usePermissions } from "../../../../Hooks/usePermissions";
+import { usePermissions } from "../../../../hooks/usePermissions";
 
 export default function UserModal({
   isOpen,

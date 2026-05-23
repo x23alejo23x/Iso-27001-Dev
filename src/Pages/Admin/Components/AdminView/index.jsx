@@ -8,7 +8,7 @@ import UserTable from "../UserTable";
 import UserModal from "../UserModal";
 import EmpresaFechasCard from "../EmpresaFechasCard";
 import DepartamentoModal from "../DepartamentoModal";
-import { usePermissions } from "../../../../Hooks/usePermissions";
+import { usePermissions } from "../../../../hooks/usePermissions";
 import { useAdminService } from "../../service";
 
 export default function AdminView() {
