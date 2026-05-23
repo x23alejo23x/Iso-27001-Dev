@@ -11,7 +11,7 @@ import {
   Moon,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { usePermissions } from "../Hooks/usePermissions.jsx";
+import { usePermissions } from "../Hooks/useUserPermissions.jsx";
 import { useTheme } from "../context/ThemeContext";
 
 const navItems = [
