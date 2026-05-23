@@ -1,11 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import MainLayout from "../layouts/MainLayout";
-import LoginView from "../Pages/Login/views"; // 👈 CORREGIDO: "Pages" con P mayúscula
-import DashboardView from "../Pages/Dashboard/views"; // 👈 CORREGIDO: "Pages" con P mayúscula
-import ChecklistView from "../Pages/Checklist/views"; // 👈 CORREGIDO: "Pages" con P mayúscula
-import AdminView from "../Pages/Admin/views"; // 👈 CORREGIDO: "Pages" con P mayúscula
-import SettingsView from "../Pages/Settings/views"; // 👈 CORREGIDO: "Pages" con P mayúscula
+import LoginView from "../Pages/Login/views";
+import DashboardView from "../Pages/Dashboard/views";
+import ChecklistView from "../Pages/Checklist/views";
+import AdminView from "../Pages/Admin/views";
+import SettingsView from "../Pages/Settings/views";
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, ready } = useAuth();
