@@ -11,6 +11,23 @@ export function useDashboardService() {
    * @param {string} empresaId - UUID de la empresa
    * @returns {Promise<Object>} cumplimiento
    */
+
+  const fetchEmpresa = useCallback(async (empresaId) => {
+    try {
+      setLoading(true);
+      const res = await fetch(
+        `${iso}/api/admin/empresa?empresa_id=${empresaId}`,
+      );
+      if (!res.ok) throw new Error("Error al obtener empresa");
+      return await res.json();
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const fetchCumplidos = useCallback(async (empresaId) => {
     try {
       setLoading(true);
@@ -110,5 +127,6 @@ export function useDashboardService() {
     fetchGapAnalysis,
     fetchCumplidos,
     fetchPorDominio,
+    fetchEmpresa,
   };
 }

@@ -9,20 +9,22 @@ import DashboardCharts from "../DashboardCharts";
 
 export default function DashboardView() {
   const navigate = useNavigate();
-  const { loading, fetchMetricas, fetchPorDominio, fetchCumplidos } =
-    useDashboardService();
+  const {
+    loading,
+    fetchMetricas,
+    fetchPorDominio,
+    fetchCumplidos,
+    fetchEmpresa,
+  } = useDashboardService();
 
   const [metricas, setMetricas] = useState(null);
   const [porDominio, setPorDominio] = useState(null);
   const [progresoData, setProgresoData] = useState([]);
+  const [empresa, setEmpresa] = useState(null);
 
   const authState = useSelector((state) => state.login);
   const empresaId = authState.user?.empresa_id;
 
-  // ✅ 1. Obtener fechas correctamente desde Redux (estructura empresa)
-  const fechaInicio = authState.user.empresas?.fecha_inicio;
-  const fechaFin = authState.user.empresas?.fecha_fin;
-  // Función mejorada para generar datos de evolución (mes a mes dentro del rango)
   const procesarCumplidosParaLinea = (
     cumplidos = [],
     totalControles,
@@ -37,56 +39,88 @@ export default function DashboardView() {
 
     if (isNaN(fInicio) || isNaN(fFin)) return [];
 
-    // Agrupar cumplidos por mes
+    const totalDias = (fFin - fInicio) / (1000 * 60 * 60 * 24);
+
+    // ✅ Elegir granularidad según duración del rango
+    const usarDias = totalDias <= 60; // menos de 2 meses → granularidad diaria
+
+    // Agrupar cumplidos por clave (día o mes)
     const grupos = new Map();
     cumplidos.forEach((c) => {
       if (c?.fecha) {
-        const key = new Date(c.fecha).toISOString().slice(0, 7); // YYYY-MM
+        const d = new Date(c.fecha);
+        const key = usarDias
+          ? d.toISOString().slice(0, 10) // YYYY-MM-DD
+          : d.toISOString().slice(0, 7); // YYYY-MM
         grupos.set(key, (grupos.get(key) || 0) + 1);
       }
     });
 
     let acumulado = 0;
     const data = [];
-
     let current = new Date(fInicio);
-    current.setDate(1); // ir al primer día del mes
 
-    while (current <= fFin) {
-      const key = current.toISOString().slice(0, 7);
-      const cantidadMes = grupos.get(key) || 0;
-      acumulado += cantidadMes;
+    if (usarDias) {
+      // ── Granularidad DIARIA ──────────────────────────────────────
+      while (current <= fFin) {
+        const key = current.toISOString().slice(0, 10);
+        acumulado += grupos.get(key) || 0;
 
-      // Calcular días transcurridos desde inicio hasta el final del mes actual
-      const endOfMonth = new Date(
-        current.getFullYear(),
-        current.getMonth() + 1,
-        1,
-      );
-      const lastDate = endOfMonth <= fFin ? endOfMonth : new Date(fFin);
-      const diasDesdeInicio = (lastDate - fInicio) / (1000 * 60 * 60 * 24);
-      const totalDias = (fFin - fInicio) / (1000 * 60 * 60 * 24);
+        const diasDesdeInicio = (current - fInicio) / (1000 * 60 * 60 * 24);
+        const meta = Math.min((diasDesdeInicio / totalDias) * 100, 100);
 
-      let meta = (diasDesdeInicio / totalDias) * 100;
-      meta = Math.min(Math.max(meta, 0), 100);
+        // Si el día es futuro, no proyectamos cumplimiento
+        const cumplimiento =
+          current > hoy
+            ? null
+            : Math.min((acumulado / totalControles) * 100, 100);
 
-      let cumplimiento = (acumulado / totalControles) * 100;
-      // Si el mes es futuro, no mostramos progreso (dejamos el acumulado hasta hoy)
-      if (current > hoy) {
-        cumplimiento = ((acumulado - cantidadMes) / totalControles) * 100;
+        data.push({
+          date: current.toLocaleDateString("es-ES", {
+            day: "2-digit",
+            month: "short",
+          }),
+          meta: parseFloat(meta.toFixed(2)),
+          // null hace que connectNulls no dibuje punto en días futuros
+          cumplimiento:
+            cumplimiento !== null ? parseFloat(cumplimiento.toFixed(2)) : null,
+        });
+
+        current.setDate(current.getDate() + 1);
       }
-      cumplimiento = Math.min(Math.max(cumplimiento, 0), 100);
+    } else {
+      // ── Granularidad MENSUAL (rango largo) ──────────────────────
+      current.setDate(1);
+      while (current <= fFin) {
+        const key = current.toISOString().slice(0, 7);
+        const cantidadMes = grupos.get(key) || 0;
+        acumulado += cantidadMes;
 
-      data.push({
-        date: current.toLocaleDateString("es-ES", {
-          month: "short",
-          year: "2-digit",
-        }),
-        meta: parseFloat(meta.toFixed(2)),
-        cumplimiento: parseFloat(cumplimiento.toFixed(2)),
-      });
+        const endOfMonth = new Date(
+          current.getFullYear(),
+          current.getMonth() + 1,
+          1,
+        );
+        const lastDate = endOfMonth <= fFin ? endOfMonth : new Date(fFin);
+        const diasDesdeInicio = (lastDate - fInicio) / (1000 * 60 * 60 * 24);
+        const meta = Math.min((diasDesdeInicio / totalDias) * 100, 100);
 
-      current.setMonth(current.getMonth() + 1);
+        const cumplimiento =
+          current > hoy
+            ? Math.min(((acumulado - cantidadMes) / totalControles) * 100, 100)
+            : Math.min((acumulado / totalControles) * 100, 100);
+
+        data.push({
+          date: current.toLocaleDateString("es-ES", {
+            month: "short",
+            year: "2-digit",
+          }),
+          meta: parseFloat(meta.toFixed(2)),
+          cumplimiento: parseFloat(cumplimiento.toFixed(2)),
+        });
+
+        current.setMonth(current.getMonth() + 1);
+      }
     }
 
     return data;
@@ -97,22 +131,29 @@ export default function DashboardView() {
 
     const loadData = async () => {
       try {
-        const [metricasData, dominioData, cumplidosData] = await Promise.all([
-          fetchMetricas(empresaId),
-          fetchPorDominio(empresaId),
-          fetchCumplidos(empresaId),
-        ]);
+        const [metricasData, dominioData, cumplidosData, empresaData] =
+          await Promise.all([
+            fetchMetricas(empresaId),
+            fetchPorDominio(empresaId),
+            fetchCumplidos(empresaId),
+            fetchEmpresa(empresaId),
+          ]);
 
         setMetricas(metricasData);
         setPorDominio(dominioData);
+        setEmpresa(empresaData);
 
+        // ✅ Leer fechas directo de empresaData, no del state (que aún es null aquí)
+        const inicio = empresaData?.fecha_inicio;
+        const fin = empresaData?.fecha_fin;
         const total = metricasData?.total_controles || 0;
-        if (fechaInicio && fechaFin && total > 0) {
+
+        if (inicio && fin && total > 0) {
           const lineData = procesarCumplidosParaLinea(
             cumplidosData,
             total,
-            fechaInicio,
-            fechaFin,
+            inicio,
+            fin,
           );
           setProgresoData(lineData);
         } else {
@@ -124,14 +165,8 @@ export default function DashboardView() {
     };
 
     loadData();
-  }, [
-    empresaId,
-    fetchMetricas,
-    fetchPorDominio,
-    fetchCumplidos,
-    fechaInicio,
-    fechaFin,
-  ]);
+  }, [empresaId, fetchMetricas, fetchPorDominio, fetchCumplidos, fetchEmpresa]);
+  // ✅ Sin fechaInicio/fechaFin en deps — evita re-render infinito
 
   const barData = porDominio
     ? Object.entries(porDominio).map(([name, data]) => ({
@@ -166,6 +201,28 @@ export default function DashboardView() {
           </p>
         </div>
       </div>
+
+      {/* ✅ Mostrar rango de fechas del proyecto */}
+      {empresa?.fecha_inicio && empresa?.fecha_fin && (
+        <div className="text-sm text-slate-500 dark:text-slate-400">
+          Período:{" "}
+          <span className="font-medium text-slate-700 dark:text-slate-300">
+            {new Date(empresa.fecha_inicio).toLocaleDateString("es-ES", {
+              day: "2-digit",
+              month: "long",
+              year: "numeric",
+            })}
+          </span>{" "}
+          →{" "}
+          <span className="font-medium text-slate-700 dark:text-slate-300">
+            {new Date(empresa.fecha_fin).toLocaleDateString("es-ES", {
+              day: "2-digit",
+              month: "long",
+              year: "numeric",
+            })}
+          </span>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         <StatCard
